@@ -140,7 +140,6 @@ cmp.setup.cmdline(':', {
     mapping = cmp.mapping.preset.cmdline({
         ["<tab>"] = cmp.mapping.complete(),
     }),
-    completion = { autocomplete = false },
     formatting = {
         fields = { 'abbr' }
     },

@@ -9,8 +9,6 @@ vim.keymap.set({ "v", "n" }, "K", ":m '<-2<CR>gv=gv")
 
 vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 
-
-vim.keymap.set("n", "<leader><leader>", vim.cmd.so)
 local function write()
    vim.lsp.buf.format()
    vim.cmd.w()
@@ -48,4 +46,5 @@ vim.keymap.set("n", "<leader>2", "2gt")
 vim.keymap.set("n", "<leader>3", "3gt")
 vim.keymap.set("n", "<leader>4", "4gt")
 vim.keymap.set("n", "<leader>5", "5gt")
-vim.keymap.set("n", "<leader>t", ":tabnew<CR>:edit ")
+vim.keymap.set("n", "<leader>t", ":tabe ")
+
