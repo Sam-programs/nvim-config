@@ -1,3 +1,5 @@
+# Preview
+![image](preview.png)
 # Setup
  the setup script should install ripgrep  
  so just clone and run it  
