@@ -47,6 +47,6 @@ vim.keymap.set("n", "<leader>3", "3gt")
 vim.keymap.set("n", "<leader>4", "4gt")
 vim.keymap.set("n", "<leader>5", "5gt")
 vim.keymap.set("n", "<leader>t", ":tabe ")
-vim.keymap.set("n", "C-a", "ggVG")
-vim.keymap.set("v", "C-a", "<ESC>ggVG")
+vim.keymap.set("n", "<C-a>", "ggVG")
+vim.keymap.set("v", "<C-a>", "<ESC>ggVG")
 
