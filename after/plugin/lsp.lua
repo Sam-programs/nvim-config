@@ -4,9 +4,9 @@ local lsp = require("lsp-zero")
 require("mason").setup({
     ui = {
         icons = {
-            package_installed = "✓",
-            package_pending = "➜",
-            package_uninstalled = "✗"
+            package_installed = "",
+            package_pending = "",
+            package_uninstalled = ""
         }
     }
 })
@@ -18,7 +18,6 @@ lsp.ensure_installed({
     "jsonls",
     "cmake"
 })
-
 
 -- Fix Undefined global 'vim'
 lsp.nvim_workspace()
@@ -97,7 +96,7 @@ cmp.setup.buffer({
         expandable_indicator = false,
         fields = { 'kind', 'abbr' },
         format = function(entry, item)
-            item.kind = icons[item.kind] or item.kind
+            item.kind = icons[item.kind] or " "
             return item
         end,
     },
@@ -160,6 +159,7 @@ lsp.set_preferences({
     sign_icons = {
         error = '',
         warn = ' ',
+ 
         hint = '',
         info = ''
     }
@@ -169,7 +169,7 @@ lsp.setup()
 
 require "lsp_signature".setup({
     bind = true, -- This is mandatory, otherwise border config won't get registered.
-    hint_prefix = "■",
+    hint_prefix = "󰇥 ", -- 󰇥 debugging duck 
     handler_opts = {
         border = "rounded"
     }
@@ -179,12 +179,4 @@ vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename)
 vim.keymap.set("n", "<C-t>", vim.lsp.buf.hover)
 vim.keymap.set("n", "<C-n>", vim.diagnostic.goto_next)
 vim.keymap.set("n", "<C-p>", vim.diagnostic.goto_prev)
-vim.keymap.set("n", "<C-e>", vim.lsp.buf.signature_help)
-
-
-
-vim.diagnostic.config({
-    virtual_text = {
-        prefix = '■',
-    },
-})
+vim.keymap.set("n", "<C-e>", vim.diagnostic.open_float)
