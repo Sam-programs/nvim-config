@@ -35,8 +35,9 @@ local config = {
         shorting_target = 40, -- Shortens path to leave 40 spaces in the window
         -- for other components. (terrible name, any suggestions?)
         symbols = {
+            -- the space here is because sometimes i modify readonly and the icons get mixed
             modified = ' ', -- Text to show when the file is modified.
-            readonly = ' ', -- Text to show when the file is non-modifiable or readonly.
+            readonly = '', -- Text to show when the file is non-modifiable or readonly.
             unnamed = '', -- Text to show for unnamed buffers.
             newfile = '', -- Text to show for newly created file before first write
         }
@@ -47,7 +48,7 @@ local config = {
         sections = { "error", "warn" },
         symbols = { error = " ", warn = " " },
         colored = true,
-        update_in_insert = true
+        update_in_insert = false 
     },
     },
     lualine_x = { {
