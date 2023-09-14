@@ -196,7 +196,9 @@ vim.keymap.set("i", "<CR>", function()
    local count = tostring(cursorCol)
    if prev == '{' then
       --no inset leave no diagnostics update no statusline color change PERFECTION
-      return '<CR><CMD>normal k$<CR><right><CR>';
+      --had a weird indentation thats why ==
+      --it might be related to nvim-autopair's issue #188 
+      return '<CR><CMD>normal ==k$<CR><right><CR>';
    end
    return '<CR>'
 end, { expr = true, noremap = true })
