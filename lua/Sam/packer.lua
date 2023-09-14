@@ -26,7 +26,6 @@ return require('packer').startup(function(use)
          { 'nvim-lua/plenary.nvim' },
          { 'nvim-tree/nvim-web-devicons' } } -- optional
    }
-
    use({
       'weilbith/nvim-code-action-menu',
       cmd = 'CodeActionMenu',
@@ -55,11 +54,10 @@ return require('packer').startup(function(use)
       { 'hrsh7th/cmp-cmdline' },
       { 'hrsh7th/cmp-path' },
       { 'hrsh7th/cmp-nvim-lsp' },
-      { 'saadparwaiz1/cmp_luasnip' },
 
       -- Snippets
-      { 'L3MON4D3/LuaSnip' },
-      { 'rafamadriz/friendly-snippets' },
+      -- { 'L3MON4D3/LuaSnip' },
+      -- { 'rafamadriz/friendly-snippets' },
    }
 
    use "ray-x/lsp_signature.nvim"
