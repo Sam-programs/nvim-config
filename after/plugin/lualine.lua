@@ -88,7 +88,7 @@ lualine.setup {
       lualine_a = {
          {
             'tabs',
-            max_length = vim.o.columns - 1, -- Maximum width of tabs component.
+            max_length = vim.o.columns, -- Maximum width of tabs component.
             -- Note:
             -- It can also be a function that returns
             -- the value of `max_length` dynamically.
@@ -110,11 +110,6 @@ lualine.setup {
             end
          }
       },
-      lualine_b = {},
-      lualine_c = {},
-      lualine_x = {},
-      lualine_y = {},
-      lualine_z = {},
    },
    winbar = {},
    inactive_winbar = {},

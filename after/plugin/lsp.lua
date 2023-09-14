@@ -60,7 +60,7 @@ vim.diagnostic.config({
   signs = true,
   underline = true,
   update_in_insert = false,
-  severity_sort = false,
+  severity_sort = true,
 })
 
 vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename)

@@ -25,7 +25,7 @@ require 'nvim-treesitter.configs'.setup {
    textobjects = {
       move = {
          enable = true,
-         set_jumps = true, -- whether to set jumps in the jumplist
+         set_jumps = false, -- whether to set jumps in the jumplist
          goto_next_start = {
             ["<C-n>"] = "@function.outer",
          },
@@ -34,5 +34,4 @@ require 'nvim-treesitter.configs'.setup {
          },
       },
    },
-
 }
