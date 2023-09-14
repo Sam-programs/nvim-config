@@ -1,4 +1,6 @@
 local cmp = require('cmp')
+local luasnip_installed, luasnip = pcall(require, "luasnip")
+require("luasnip.loaders.from_vscode").lazy_load()
 local icons = {
    Text = "",
    Method = "",
@@ -14,6 +16,7 @@ local icons = {
    Value = "",
    Enum = "",
    Keyword = "",
+   Snippet = "",
    Color = "",
    File = "",
    Reference = "",
@@ -35,15 +38,32 @@ cmp.setup.buffer({
          select = true,
       }),
 
-      ["<C-n>"] = cmp.mapping.select_next_item(),
+      ["<C-n>"] = cmp.mapping(function(fallback)
+         if cmp.visible() then
+            cmp.select_next_item()
+         elseif luasnip.expand_or_jumpable() then
+            luasnip.expand_or_jump()
+         else
+            fallback()
+         end
+      end),
 
-      ["<C-p>"] = cmp.mapping.select_prev_item(),
+      ["<C-p>"] = cmp.mapping(function(fallback)
+         if cmp.visible() then
+            cmp.select_prev_item()
+         elseif luasnip.jumpable(-1) then
+            luasnip.jump(-1)
+         else
+            fallback()
+         end
+      end),
    }),
 
    sources = {
       { name = "path",     group_index = 1 },
       { name = "nvim_lsp", group_index = 2 },
-      { name = "buffer",   group_index = 2 },
+      { name = "luasnip",  group_index = 2 },
+      { name = "buffer",   group_index = 3 },
    },
    formatting = {
       expandable_indicator = false,
@@ -67,6 +87,12 @@ cmp.setup.buffer({
 
    experimental = {
       ghost_text = true,
+   },
+
+   snippet = {
+      expand = function(args)
+         luasnip.lsp_expand(args.body)
+      end,
    },
 })
 -- '/' cmdline setup

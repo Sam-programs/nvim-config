@@ -8,6 +8,17 @@ require("mason").setup({
    }
 })
 
+local signs = {
+   Error = "",
+   Warn = "",
+   Hint = "",
+   Info = ""
+}
+for type, icon in pairs(signs) do
+   local hl = "DiagnosticSign" .. type
+   vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+
 local masonLspconfig = require("mason-lspconfig");
 masonLspconfig.setup {
    ensure_installed = {
@@ -16,7 +27,6 @@ masonLspconfig.setup {
       "clangd",
    },
 }
-
 local masonBin = os.getenv("HOME") .. '/.local/share/nvim/mason/bin/'
 local lspconfig = require("lspconfig")
 masonLspconfig.setup_handlers {
@@ -41,11 +51,6 @@ masonLspconfig.setup_handlers {
    end,
 }
 
-local signs = { Error = "", Warn = "", Hint = "", Info = "" }
-for type, icon in pairs(signs) do
-   local hl = "DiagnosticSign" .. type
-   vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
-end
 
 require("lsp_signature").setup({
    bind = true, -- This is mandatory, otherwise border config won't get registered.
@@ -56,11 +61,11 @@ require("lsp_signature").setup({
 })
 
 vim.diagnostic.config({
-  virtual_text = { prefix=' '},
-  signs = true,
-  underline = true,
-  update_in_insert = false,
-  severity_sort = true,
+   virtual_text = { prefix = ' ' },
+   signs = true,
+   underline = true,
+   update_in_insert = false,
+   severity_sort = true,
 })
 
 vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename)

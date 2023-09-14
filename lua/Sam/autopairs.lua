@@ -1,5 +1,5 @@
 ---@diagnostic disable: deprecated
--- get an element by index in a string 
+-- get an element by index in a string
 -- 0 indexing
 local function stri(str, i)
    return str:sub(i + 1, i + 1)
@@ -12,7 +12,7 @@ local function strsub(str, b, e)
    end
    return str:sub(b + 1)
 end
--- insert an element to a string 
+-- insert an element to a string
 -- 0 indexing
 local function insertChar(str, i, c)
    return str:sub(1, i + 1) .. c .. str:sub(i + 2, #str)
@@ -126,7 +126,7 @@ local function brackets(open, close)
    local right = api.nvim_replace_termcodes("<right>", true, false, true);
    local dataBeforeCursor = strsub(line, 0, c - 1);
    local dataAfterCursor = strsub(line, c);
-   local openBrackets = strcontains(dataBeforeCursor, open) - strcontains(dataBeforeCursor,close)
+   local openBrackets = strcontains(dataBeforeCursor, open) - strcontains(dataBeforeCursor, close)
    local closedBrackets = strcontains(dataAfterCursor, close) - strcontains(dataAfterCursor, open)
    line = insertChar(line, c - 1, open);
    --this might not be the best way to check if there are missing end brackets
@@ -164,13 +164,16 @@ vim.keymap.set("i", "<BS>", function()
    return '<BS>';
 end, { expr = true, noremap = true })
 
-vim.keymap.set('i', '<CR>', function()
+--this works better than <ESC>O with lsps and statuslines
+--this took hours of trying to perfect it all thanks to feedkeys
+vim.keymap.set("i", "<CR>", function()
    local cursorRow, cursorCol = unpack(api.nvim_win_get_cursor(0));
-   local line = api.nvim_buf_get_lines(0, cursorRow - 1, cursorRow, false)[1];
-   local prev = stri(line, cursorCol - 1);
-   --i am not using <ESC>O becuase this works better with lsps and statuslines
+   local buf = api.nvim_buf_get_lines(0, 0, -1, false)
+   local line = buf[cursorRow]
+   local prev = strsub(line,cursorCol - 1, cursorCol - 1)
+   local count = tostring(cursorCol)
    if prev == '{' then
-      return '<CR><Up><Right><CR>';
+      return '<CR><CMD>normal k$<CR><right><CR>';
    end
-   return '<CR>';
-end, { expr = true, noremap = true })
+   return '<CR>'
+end,{expr = true, noremap = true})
