@@ -1,17 +1,17 @@
+---@diagnostic disable: deprecated
 vim.g.mapleader = " "
 
-vim.keymap.set('t', '<Esc>', '<C-\\><C-n><CR>')
+vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
+vim.keymap.set('t', '<C-w>', '<C-\\><C-n><C-w>>')
 
 vim.keymap.set({ "v", "n" }, "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set({ "v", "n" }, "K", ":m '<-2<CR>gv=gv")
-
 --lsp
 
 vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
-
 local function write()
    vim.lsp.buf.format()
-   vim.cmd.w()
+   vim.cmd('wa!')
 end
 
 vim.keymap.set("n", "<leader>w", write)
@@ -29,10 +29,7 @@ end)
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
-vim.keymap.set("x", "p", "\"+p")
-
 vim.keymap.set("n", "p", "\"+p")
-
 vim.keymap.set("v", "y", "\"+y")
 
 vim.keymap.set("n", "y", "\"+Y")
@@ -47,6 +44,14 @@ vim.keymap.set("n", "<leader>3", "3gt")
 vim.keymap.set("n", "<leader>4", "4gt")
 vim.keymap.set("n", "<leader>5", "5gt")
 vim.keymap.set("n", "<leader>t", ":tabe ")
+
 vim.keymap.set("n", "<C-a>", "ggVG")
 vim.keymap.set("v", "<C-a>", "<ESC>ggVG")
 
+vim.keymap.set("n", "<C-s>", "<CMD>mksession lastsession.vim<CR>")
+vim.keymap.set("n", "<C-l>", "<CMD>source lastsession.vim<CR>")
+
+vim.keymap.set("i", "<C-h>", "<left>")
+vim.keymap.set("i", "<C-j>", "<down>")
+vim.keymap.set("i", "<C-k>", "<up>")
+vim.keymap.set("i", "<C-l>", "<right>")
