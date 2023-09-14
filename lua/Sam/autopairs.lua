@@ -1,4 +1,8 @@
 ---@diagnostic disable: deprecated
+--
+-- my first neovim plugin that am not bothered to put in another repo!
+--
+
 -- get an element by index in a string
 -- 0 indexing
 local function stri(str, i)
@@ -101,6 +105,21 @@ local letters = {
    ['X'] = true,
    ['Y'] = true,
    ['Z'] = true,
+   ['0'] = true,
+   ['1'] = true,
+   ['2'] = true,
+   ['3'] = true,
+   ['4'] = true,
+   ['5'] = true,
+   ['6'] = true,
+   ['7'] = true,
+   ['8'] = true,
+   ['9'] = true,
+   ['\\'] = true,
+   ['.'] = true,
+   ['/'] = true,
+   [':'] = true,
+   ['_'] = true,
 }
 
 local api = vim.api
@@ -136,6 +155,9 @@ local function brackets(open, close)
       while letters[next] do
          c = c + 1;
          next = stri(line, c);
+         if letters[next] == nil then
+            c = c - 1
+         end
       end
       line = insertChar(line, c, close);
    end
@@ -170,10 +192,11 @@ vim.keymap.set("i", "<CR>", function()
    local cursorRow, cursorCol = unpack(api.nvim_win_get_cursor(0));
    local buf = api.nvim_buf_get_lines(0, 0, -1, false)
    local line = buf[cursorRow]
-   local prev = strsub(line,cursorCol - 1, cursorCol - 1)
+   local prev = strsub(line, cursorCol - 1, cursorCol - 1)
    local count = tostring(cursorCol)
    if prev == '{' then
+      --no inset leave no diagnostics update no statusline color change PERFECTION
       return '<CR><CMD>normal k$<CR><right><CR>';
    end
    return '<CR>'
-end,{expr = true, noremap = true})
+end, { expr = true, noremap = true })
