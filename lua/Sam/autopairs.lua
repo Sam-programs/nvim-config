@@ -39,16 +39,25 @@ local bracketList = {
    { '{',  '}' },
    { '(',  ')' },
    { '[',  ']' },
-   { '\'', '\'' },
    { '\"', '\"' },
+   { '\'', '\'' },
 }
-
+local leaveableBrackets = {
+   { '(', ')' },
+   { '[', ']' },
+}
 --  don't get confused you are not a compiler
 -- (;) -> ();
 -- {;} -> {};
 local semiOutBrackets = {
-   ['{'] = true,
-   ['('] = true,
+   {
+      ['{'] = true,
+      ['('] = true,
+   },
+   {
+      [')'] = true,
+      ['}'] = true,
+   }
 }
 --i could use a string contains
 --but this is cooler
@@ -116,10 +125,10 @@ local letters = {
    ['8'] = true,
    ['9'] = true,
    ['\\'] = true,
-   ['.'] = true,
    ['/'] = true,
    [':'] = true,
    ['_'] = true,
+   ['.'] = true,
 }
 
 local api = vim.api
@@ -128,21 +137,51 @@ vim.keymap.set("i", ";", function()
    local r, c = unpack(api.nvim_win_get_cursor(0));
    r = r - 1 -- i hate lua
    local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
-   local prev = stri(line, c - 1)
-   if semiOutBrackets[prev] ~= nil then
-      line = insertChar(line, c + 1, ';');
-      api.nvim_buf_set_lines(0, r, r + 1, false, { line });
-   else
-      api.nvim_feedkeys(';', 'n', false)
+   local current = stri(line, c)
+   if semiOutBrackets[1][current] ~= nil then
+      local next = stri(line, c + 2)
+      if next == ';' then
+         return ''
+      end
+      return '<right><right>;<left><left>'
    end
-end)
+   if semiOutBrackets[2][current] ~= nil then
+      local next = stri(line, c + 1)
+      if next == ';' then
+         return ''
+      end
+      return '<right>;<left><left>'
+   end
+   return ';'
+end, { expr = true, noremap = true })
+
+vim.keymap.set("n", ";", function()
+   local r, c = unpack(api.nvim_win_get_cursor(0));
+   r = r - 1 -- i hate lua
+   local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
+   local current = stri(line, c)
+   if semiOutBrackets[1][current] ~= nil then
+      local next = stri(line, c + 2)
+      if next == ';' then
+         return ''
+      end
+      return 'a<right>;<left><left><ESC>'
+   end
+   if semiOutBrackets[2][current] ~= nil then
+      local next = stri(line, c + 1)
+      if next == ';' then
+         return ''
+      end
+      return 'a;<left><ESC>'
+   end
+   return ';'
+end, { expr = true, noremap = true })
 
 local function brackets(open, close)
    local r, c = unpack(api.nvim_win_get_cursor(0));
    r = r - 1;
    local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
    local next = stri(line, c);
-   local right = api.nvim_replace_termcodes("<right>", true, false, true);
    local dataBeforeCursor = strsub(line, 0, c - 1);
    local dataAfterCursor = strsub(line, c);
    local openBrackets = strcontains(dataBeforeCursor, open) - strcontains(dataBeforeCursor, close)
@@ -150,7 +189,7 @@ local function brackets(open, close)
    line = insertChar(line, c - 1, open);
    --this might not be the best way to check if there are missing end brackets
    --but its good enough
-   if closedBrackets >= openBrackets then
+   if closedBrackets <= openBrackets then
       -- word wrapping
       while letters[next] do
          c = c + 1;
@@ -162,13 +201,27 @@ local function brackets(open, close)
       line = insertChar(line, c, close);
    end
    api.nvim_buf_set_lines(0, r, r + 1, false, { line });
-   api.nvim_feedkeys(right, 'n', false);
+   local cmd = api.nvim_replace_termcodes("<CMD>", true, false, true);
+   local enter = api.nvim_replace_termcodes("<CR>", true, false, true);
+   api.nvim_feedkeys(cmd .. 'normal ==f' .. close .. enter, 'n', false);
 end
+
 for i, bracket in pairs(bracketList) do
    vim.keymap.set("i", bracket[1], function()
       brackets(bracket[1], bracket[2])
    end)
 end
+
+vim.keymap.set("i", "\'", function()
+   local r, c = unpack(api.nvim_win_get_cursor(0));
+   r = r - 1;
+   local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
+   local prev = stri(line, c - 1)
+   if letters[prev] then
+      return "\'"
+   end
+   return "\'\'<left>"
+end, { expr = true, noremap = true })
 
 vim.keymap.set("i", "<BS>", function()
    local r, c = unpack(api.nvim_win_get_cursor(0));
@@ -186,18 +239,28 @@ vim.keymap.set("i", "<BS>", function()
    return '<BS>';
 end, { expr = true, noremap = true })
 
---this works better than <ESC>O with lsps and statuslines
+--perfer (;) over this when adding semicolons
+--l to leave pair
+vim.keymap.set("i", "l", function()
+   local cursorRow, cursorCol = unpack(api.nvim_win_get_cursor(0));
+   local line = api.nvim_buf_get_lines(0, cursorRow - 1, cursorRow, false)[1]
+   local current = stri(line, cursorCol)
+   for i, bracket in pairs(leaveableBrackets) do
+      if current == bracket[2] then
+         return '<right>';
+      end
+   end
+   return 'l';
+end, { expr = true, noremap = true })
+
+--this works better than <ESC>O because it only draws the cursor once
 --this took hours of trying to perfect it all thanks to feedkeys
 vim.keymap.set("i", "<CR>", function()
    local cursorRow, cursorCol = unpack(api.nvim_win_get_cursor(0));
-   local buf = api.nvim_buf_get_lines(0, 0, -1, false)
-   local line = buf[cursorRow]
-   local prev = strsub(line, cursorCol - 1, cursorCol - 1)
-   local count = tostring(cursorCol)
+   local line = api.nvim_buf_get_lines(0, cursorRow - 1, cursorRow, false)[1]
+   local prev = stri(line, cursorCol - 1)
    if prev == '{' then
-      --no inset leave no diagnostics update no statusline color change PERFECTION
       --had a weird indentation thats why ==
-      --it might be related to nvim-autopair's issue #188 
       return '<CR><CMD>normal ==k$<CR><right><CR>';
    end
    return '<CR>'

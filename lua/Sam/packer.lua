@@ -41,7 +41,6 @@ return require('packer').startup(function(use)
       after = "nvim-treesitter",
       requires = "nvim-treesitter/nvim-treesitter",
    })
-
    use {
       -- LSP Support
       { 'neovim/nvim-lspconfig' },
@@ -55,7 +54,7 @@ return require('packer').startup(function(use)
       { 'hrsh7th/cmp-path' },
       { 'hrsh7th/cmp-nvim-lsp' },
       -- Snippets
-       { 'L3MON4D3/LuaSnip' },
+      { 'L3MON4D3/LuaSnip' },
       { 'rafamadriz/friendly-snippets' },
    }
 

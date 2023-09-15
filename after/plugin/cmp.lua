@@ -115,13 +115,8 @@ cmp.setup.cmdline(':', {
       fields = { 'abbr' }
    },
    sources = cmp.config.sources({
-      { name = 'path' }
-   }, {
       {
          name = 'cmd',
-         option = {
-            ignore_cmds = { 'Man', '!' }
-         }
       }
    })
 })
