@@ -20,6 +20,11 @@ vim.keymap.set("n", "<leader>q", function()
    write()
    vim.cmd('qa!')
 end)
+vim.keymap.set("n", "q:", function()
+   write()
+   vim.cmd('qa!')
+end)
+
 
 
 vim.keymap.set("n", "<C-f>", function()
