@@ -18,7 +18,10 @@ return require('packer').startup(function(use)
    -- Packer can manage itself
    use 'wbthomason/packer.nvim'
 
-   use 'folke/tokyonight.nvim'
+   use {
+      'folke/tokyonight.nvim',
+      config = function() vim.cmd.colorscheme('tokyonight-storm') end
+   }
 
    use {
       'nvim-telescope/telescope.nvim', tag = '0.1.0',
@@ -59,7 +62,10 @@ return require('packer').startup(function(use)
    }
 
    use "ray-x/lsp_signature.nvim"
-
+   use {
+      "Sam-programs/autopairs.nvim",
+      config = function() require("autopairs").setup {} end
+   }
    use {
       'nvim-lualine/lualine.nvim',
       requires = { 'nvim-tree/nvim-web-devicons' } --optional
