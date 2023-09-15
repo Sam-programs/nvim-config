@@ -187,14 +187,12 @@ local function brackets(open, close)
        prev ~= '\\'
    then
       -- word wrapping
-      while letters[next] do
-         c = c + 1;
-         next = stri(line, c);
-         -- for the closing bracket to be positioned properly
-         -- there is probably a better way to do this
-         if letters[next] == nil then
-            c = c - 1
+      if letters[next] then
+         while letters[next] do
+            c = c + 1;
+            next = stri(line, c);
          end
+         c = c - 1
       end
       line = insertChar(line, c, close);
    end
@@ -256,4 +254,3 @@ vim.keymap.set("i", "<CR>", function()
    end
    return '<CR>'
 end, { expr = true, noremap = true })
-
