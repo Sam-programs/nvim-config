@@ -6,8 +6,6 @@
 --coudn't use <const>
 local OPENING = 1
 local CLOSING = 2
--- get an element by index in a string
--- 0 indexing
 
 local bracketList = {
    { '{',  '}' },
@@ -102,6 +100,9 @@ local letters = {
 }
 
 -- string utils
+
+-- get an element by index in a string
+-- 0 indexing
 local function stri(str, i)
    return str:sub(i + 1, i + 1)
 end
