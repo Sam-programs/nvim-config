@@ -16,12 +16,7 @@ local bracketList = {
    { '\"', '\"' },
    { '\'', '\'' },
 }
--- pressing  in insert mode whie over one of these brackets makes you go ot the right
--- {|} -> {}|
-local leaveableBrackets = {
-   { '(', ')' },
-   { '[', ']' },
-}
+
 --  don't get confused you are not a compiler
 -- (;) -> ();
 -- {;} -> {};
@@ -146,11 +141,11 @@ local function semicolon_handler()
    local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
    local current = stri(line, c)
    local next = stri(line, c + 1)
-   local Afternext = stri(line, c + 2)
+   local afterNext = stri(line, c + 2)
    if next == ';' then
       return ''
    end
-   if Afternext == ';' then
+   if afterNext == ';' then
       return ''
    end
    if semiOutBrackets[OPENING][current] ~= nil then
@@ -165,6 +160,7 @@ end
 vim.keymap.set("i", ";", function()
    return semicolon_handler();
 end, { expr = true, noremap = true })
+
 vim.keymap.set("n", ";", function()
    local ret = semicolon_handler();
    if ret == ';' then
@@ -178,14 +174,17 @@ local function brackets(open, close)
    r = r - 1;
    local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
    local next = stri(line, c);
+   local prev = stri(line, c - 1);
    local dataBeforeCursor = strsub(line, 0, c - 1);
    local dataAfterCursor = strsub(line, c);
-   local openBracketsBeforeCursor = strcontains(dataBeforeCursor, open) - strcontains(dataBeforeCursor, close)
-   local closedBracketsAfterCursor = strcontains(dataAfterCursor, close) - strcontains(dataAfterCursor, open)
+   local openBracketsBeforeCursor = strcontains(dataBeforeCursor, open) - strcontains(dataBeforeCursor, close);
+   local closedBracketsAfterCursor = strcontains(dataAfterCursor, close) - strcontains(dataAfterCursor, open);
    line = insertChar(line, c - 1, open);
    --this might not be the best way to check if there are missing end brackets
    --but its good enough
-   if closedBracketsAfterCursor <= openBracketsBeforeCursor then
+   if closedBracketsAfterCursor <= openBracketsBeforeCursor and
+       prev ~= '\\'
+   then
       -- word wrapping
       while letters[next] do
          c = c + 1;
@@ -212,13 +211,15 @@ for i, bracket in pairs(bracketList) do
 end
 
 -- ' gets a speical function
--- because i can't write can't properly without making this function
+-- because i can't write can't properly without this function
 vim.keymap.set("i", "\'", function()
    local r, c = unpack(api.nvim_win_get_cursor(0));
    r = r - 1;
    local line = api.nvim_buf_get_lines(0, r, r + 1, false)[1];
    local prev = stri(line, c - 1)
-   if letters[prev] then
+   if letters[prev] or
+       prev == '\\'
+   then
       return "\'"
    end
    return "\'\'<left>"
@@ -240,20 +241,6 @@ vim.keymap.set("i", "<BS>", function()
    return '<BS>';
 end, { expr = true, noremap = true })
 
---perfer (;) over this when adding semicolons
---l to leave pair
-vim.keymap.set("i", "l", function()
-   local cursorRow, cursorCol = unpack(api.nvim_win_get_cursor(0));
-   local line = api.nvim_buf_get_lines(0, cursorRow - 1, cursorRow, false)[1]
-   local current = stri(line, cursorCol)
-   for i, bracket in pairs(leaveableBrackets) do
-      if current == bracket[CLOSING] then
-         return '<right>';
-      end
-   end
-   return 'l';
-end, { expr = true, noremap = true });
-
 --this works better than <ESC>O because it only draws the cursor once
 --this took hours of trying to perfect it all thanks to feedkeys
 vim.keymap.set("i", "<CR>", function()
@@ -268,3 +255,4 @@ vim.keymap.set("i", "<CR>", function()
    end
    return '<CR>'
 end, { expr = true, noremap = true })
+
