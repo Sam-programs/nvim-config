@@ -4,8 +4,6 @@ vim.g.mapleader = " "
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
 vim.keymap.set('t', '<C-w>', '<C-\\><C-n><C-w>>')
 
-vim.keymap.set({ "v", "n" }, "J", ":m '>+1<CR>gv=gv")
-vim.keymap.set({ "v", "n" }, "K", ":m '<-2<CR>gv=gv")
 --lsp
 
 vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
@@ -14,6 +12,29 @@ local function write()
    vim.cmd('wa!')
 end
 
+vim.keymap.set({ "n", "v" }, "J", function()
+   local selbegin = vim.fn.getpos('v')[2]
+   local selend = vim.fn.getpos('.')[2]
+   local bufsize = #vim.api.nvim_buf_get_lines(0, 0, -1, false)
+   if selbegin == bufsize  or selend == bufsize then
+      return ''
+   end
+   return "<ESC><CMD>'<,'>m '>+1<CR>gv=gv"
+end, { expr = true })
+
+vim.keymap.set({ "n", "v" }, "K", function()
+   local selbegin = vim.fn.getpos("v")[2]
+   local selend = vim.fn.getpos(".")[2]
+   if selbegin == 1 or selend == 1 then
+      return ''
+   end
+   if selbegin > selend then
+      selbegin = selend
+   end
+   return "<ESC><CMD>'<,'>m ".. selbegin  .."-2<CR>gv=gv"
+end, { expr = true })
+
+vim.keymap.set("n", "M", "K")
 vim.keymap.set("n", "<leader>w", write)
 
 vim.keymap.set("n", "<leader>q", function()
@@ -25,14 +46,6 @@ vim.keymap.set("n", "q:", function()
    vim.cmd('qa!')
 end)
 
-
-
-vim.keymap.set("n", "<C-f>", function()
-   vim.cmd.CodeActionMenu()
-end)
-
-vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
-vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
 vim.keymap.set("n", "p", "\"+p")
 vim.keymap.set("v", "y", "\"+y")
@@ -53,10 +66,11 @@ vim.keymap.set("n", "<leader>t", ":tabe ")
 vim.keymap.set("n", "<C-a>", "ggVG")
 vim.keymap.set("v", "<C-a>", "<ESC>ggVG")
 
-vim.keymap.set("n", "<C-s>", "<CMD>mksession lastsession.vim<CR>")
+vim.keymap.set("n", "<C-s>", "<CMD>mksession! lastsession.vim<CR>")
 vim.keymap.set("n", "<C-l>", "<CMD>source lastsession.vim<CR>")
 
-vim.keymap.set("i", "<C-h>", "<left>")
-vim.keymap.set("i", "<C-j>", "<down>")
-vim.keymap.set("i", "<C-k>", "<up>")
-vim.keymap.set("i", "<C-l>", "<right>")
+vim.keymap.set({ "i", "c" }, "<C-h>", "<left>")
+vim.keymap.set({ "i", "c" }, "<C-j>", "<down>")
+vim.keymap.set({ "i", "c" }, "<C-k>", "<up>")
+vim.keymap.set({ "i", "c" }, "<C-l>", "<right>")
+vim.keymap.set({ "i", "c" }, "<C-x>", "<right><BS>")

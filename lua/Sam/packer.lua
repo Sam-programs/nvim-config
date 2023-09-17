@@ -64,7 +64,9 @@ return require('packer').startup(function(use)
    use "ray-x/lsp_signature.nvim"
    use {
       "Sam-programs/autopairs.nvim",
-      config = function() require("autopairs").setup {} end
+      config = function()
+         require("autopairs").setup {}
+      end
    }
    use {
       'nvim-lualine/lualine.nvim',

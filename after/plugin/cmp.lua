@@ -95,6 +95,7 @@ cmp.setup.buffer({
       end,
    },
 })
+
 -- '/' cmdline setup
 cmp.setup.cmdline('/', {
    mapping = cmp.mapping.preset.cmdline(),
