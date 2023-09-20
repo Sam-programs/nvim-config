@@ -27,13 +27,12 @@ local icons = {
    Event = "",
    Operator = "",
    TypeParameter = "",
-}
+};
 cmp.setup.buffer({
    mapping = cmp.mapping.preset.insert({
       ["<cr>"] = cmp.mapping.confirm({
          select = true,
       }),
-
       ["<Tab>"] = cmp.mapping.confirm({
          select = true,
       }),
@@ -61,8 +60,8 @@ cmp.setup.buffer({
 
    sources = {
       { name = "path",     group_index = 1 },
-      { name = "nvim_lsp", group_index = 2 },
       { name = "luasnip",  group_index = 2 },
+      { name = "nvim_lsp", group_index = 2 },
       { name = "buffer",   group_index = 3 },
    },
    formatting = {

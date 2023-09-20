@@ -1,7 +1,5 @@
 vim.opt.guicursor = ""
 
-vim.opt.acd = true
-
 vim.opt.nu = true
 vim.opt.rnu = true
 
@@ -27,5 +25,5 @@ vim.opt.scrolloff = 8
 
 vim.opt.updatetime = 50
 
-vim.opt.showmode = false 
-
+vim.opt.showmode = false
+vim.o.signcolumn = 'yes:1'

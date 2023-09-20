@@ -11,8 +11,6 @@ local ensure_packer = function()
 end
 
 local packer_bootstrap = ensure_packer()
--- Only required if you have packer configured as `opt`
-vim.cmd.packadd('packer.nvim')
 
 return require('packer').startup(function(use)
    -- Packer can manage itself
@@ -22,7 +20,14 @@ return require('packer').startup(function(use)
       'folke/tokyonight.nvim',
       config = function() vim.cmd.colorscheme('tokyonight-storm') end
    }
-
+   use {
+      "folke/todo-comments.nvim",
+      dependencies = { "nvim-lua/plenary.nvim" },
+      config = function()
+         local todo = require("todo-comments")
+         todo.setup()
+      end
+   }
    use {
       'nvim-telescope/telescope.nvim', tag = '0.1.0',
       requires = {
@@ -45,7 +50,7 @@ return require('packer').startup(function(use)
       requires = "nvim-treesitter/nvim-treesitter",
    })
    use {
-      -- LSP Support
+     -- LSP Support
       { 'neovim/nvim-lspconfig' },
       { 'williamboman/mason.nvim' },
       { 'williamboman/mason-lspconfig.nvim' },
