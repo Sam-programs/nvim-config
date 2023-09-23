@@ -1,5 +1,0 @@
-require("Sam.autocmd")
-require("Sam.set")
-require("Sam.remap")
-require("Sam.commands")
-require("Sam.packer")

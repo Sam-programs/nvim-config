@@ -2,6 +2,7 @@ vim.opt.guicursor = ""
 
 vim.opt.nu = true
 vim.opt.rnu = true
+vim.opt.scl = "yes" 
 
 vim.opt.tabstop = 3
 vim.opt.softtabstop = 3
@@ -26,4 +27,3 @@ vim.opt.scrolloff = 8
 vim.opt.updatetime = 50
 
 vim.opt.showmode = false
-vim.o.signcolumn = 'yes:1'

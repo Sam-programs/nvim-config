@@ -36,7 +36,10 @@ vim.api.nvim_create_autocmd({ "BufEnter", "TermOpen" }, {
    callback = function()
       vim.cmd("startinsert")
       if vim.o.nu then
+         vim.wo[0].nu = false
          vim.wo[0].rnu = false
+         vim.wo[0].scl = "no" 
+         vim.api.nvim_win_set_width(0,50)
       end
    end,
 })

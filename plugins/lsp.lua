@@ -27,7 +27,7 @@ masonLspconfig.setup {
       "clangd",
    },
 }
-local masonBin = os.getenv("HOME") .. '/.local/share/nvim/mason/bin/'
+local masonBin = vim.fn.stdpath("data") .. 'mason/bin/'
 local lspconfig = require("lspconfig")
 masonLspconfig.setup_handlers {
    -- The first entry (without a key) will be the default handler
@@ -57,7 +57,9 @@ require("lsp_signature").setup({
    hint_prefix = "󰇥 ", -- 󰇥 debugging duck
    handler_opts = {
       border = "rounded"
-   }
+   },
+   floating_window_off_x = -1, -- negative 1 to align with the border
+   max_height = 2,             -- if u can't explain a function in 1 line i am going to your docs
 })
 
 vim.diagnostic.config({

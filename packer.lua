@@ -20,14 +20,7 @@ return require('packer').startup(function(use)
       'folke/tokyonight.nvim',
       config = function() vim.cmd.colorscheme('tokyonight-storm') end
    }
-   use {
-      "folke/todo-comments.nvim",
-      dependencies = { "nvim-lua/plenary.nvim" },
-      config = function()
-         local todo = require("todo-comments")
-         todo.setup()
-      end
-   }
+
    use {
       'nvim-telescope/telescope.nvim', tag = '0.1.0',
       requires = {
@@ -50,7 +43,7 @@ return require('packer').startup(function(use)
       requires = "nvim-treesitter/nvim-treesitter",
    })
    use {
-     -- LSP Support
+      -- LSP Support
       { 'neovim/nvim-lspconfig' },
       { 'williamboman/mason.nvim' },
       { 'williamboman/mason-lspconfig.nvim' },
@@ -62,16 +55,12 @@ return require('packer').startup(function(use)
       { 'hrsh7th/cmp-path' },
       { 'hrsh7th/cmp-nvim-lsp' },
       -- Snippets
-      { 'L3MON4D3/LuaSnip' },
-      { 'rafamadriz/friendly-snippets' },
    }
 
    use "ray-x/lsp_signature.nvim"
    use {
       "Sam-programs/autopairs.nvim",
-      config = function()
-         require("autopairs").setup {}
-      end
+      config = function() require("autopairs").setup {} end
    }
    use {
       'nvim-lualine/lualine.nvim',
@@ -81,4 +70,6 @@ return require('packer').startup(function(use)
    if packer_bootstrap then
       require('packer').sync()
    end
+
 end)
+

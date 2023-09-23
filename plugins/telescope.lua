@@ -18,6 +18,7 @@ telescope.setup {
       sorting_strategy = 'ascending',
    },
 }
+
 vim.keymap.set('n', '<leader>pf', builtin.find_files)
 vim.keymap.set('n', '<leader>pv', builtin.git_files)
 vim.keymap.set('n', '<leader>ps', function()
@@ -26,7 +27,7 @@ end)
 vim.keymap.set('n', '<leader>vh', builtin.help_tags)
 vim.keymap.set('n', '<leader>rr', builtin.lsp_references)
 vim.keymap.set('n', 'gd', builtin.lsp_definitions)
-vim.keymap.set('n', '<leader>m', function ()
-  builtin.man_pages({sections = {"3","2","1"}})
+vim.keymap.set('n', '<leader>m', function()
+   builtin.man_pages({ sections = { "3", "2", "1" } })
 end)
 vim.keymap.set('n', '<leader>e', builtin.diagnostics)

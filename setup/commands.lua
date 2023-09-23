@@ -1,0 +1,5 @@
+vim.api.nvim_create_user_command("T", function()
+        local keys = vim.api.nvim_replace_termcodes("<C-w>v<C-w>l<cmd>term<cr>", true,false,true)
+        vim.api.nvim_feedkeys(keys, 'n', false)
+end,{})
+vim.cmd("command Ps PackerSync")

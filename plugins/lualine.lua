@@ -1,3 +1,5 @@
+--disable the startup screen since lua line clears it anway
+vim.opt.shortmess = 'filnxtToOFI'
 local lualine = require 'lualine'
 
 local diffcolors = {
@@ -115,4 +117,3 @@ lualine.setup {
    inactive_winbar = {},
    extensions = {}
 }
-
