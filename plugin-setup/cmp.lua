@@ -57,17 +57,18 @@ cmp.setup.cmdline('/', {
    }
 })
 
+--this gets setup by default i have no clue why
 -- `:` cmdline setup.
-cmp.setup.cmdline(':', {
-   mapping = cmp.mapping.preset.cmdline({
-      ["<tab>"] = cmp.mapping.complete(),
-   }),
-   formatting = {
-      fields = { 'abbr' }
-   },
-   sources = cmp.config.sources({
-      {
-         name = 'cmd',
-      }
-   })
-})
+-- cmp.setup.cmdline(':', {
+--   mapping = cmp.mapping.preset.cmdline({
+--      ["<tab>"] = cmp.mapping.complete(),
+--   }),
+--   formatting = {
+--      fields = { 'abbr' }
+--   },
+--   sources = cmp.config.sources({
+--      {
+--         name = 'cmd',
+--      }
+--   })
+--})

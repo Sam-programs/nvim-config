@@ -60,7 +60,7 @@ local config = {
       symbols = { added = '+', modified = '󰦒', removed = '-' }, -- Changes the symbols used by the diff.
    } },
    lualine_y = { 'location' },
-   lualine_z = { { 'datetime', style = '🕓%H:%M' } }
+   lualine_z = { { 'datetime', style = '  %H:%M' } }
 }
 
 lualine.setup {
