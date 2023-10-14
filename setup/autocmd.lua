@@ -1,5 +1,5 @@
 --preserves the last edit postion
-vim.api.nvim_create_autocmd({ "BufReadPost" }, {
+vim.api.nvim_create_autocmd({ "BufRead" }, {
    pattern = { "*" },
    callback = function(ev)
       --the " mark points to the postion you exited from

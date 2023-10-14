@@ -1,32 +1,20 @@
 require("mason").setup({
    ui = {
-      icons = {
-         package_installed = "",
-         package_pending = "",
-         package_uninstalled = ""
-      }
+      icons = eopts.mason_icons
    }
 })
 
-local signs = {
-   Error = "",
-   Warn = "",
-   Hint = "",
-   Info = ""
-}
-for type, icon in pairs(signs) do
+for type, icon in pairs(eopts.lsp_signs) do
    local hl = "DiagnosticSign" .. type
-   vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+   -- don't ask why DiffChange
+   vim.fn.sign_define(hl, { text = icon, numhl = hl, texthl = hl, linehl = "DiffChange" })
 end
 
 local masonLspconfig = require("mason-lspconfig");
 masonLspconfig.setup {
-   ensure_installed = {
-      "lua_ls",
-      "cmake",
-      "clangd",
-   },
+   ensure_installed = eopts.lsps,
 }
+
 local masonBin = vim.fn.stdpath("data") .. 'mason/bin/'
 local lspconfig = require("lspconfig")
 masonLspconfig.setup_handlers {
@@ -34,7 +22,8 @@ masonLspconfig.setup_handlers {
    -- and will be called for each installed server that doesn't have
    -- a dedicated handler.
    function(server_name) -- default handler (optional)
-      lspconfig[server_name].setup {}
+      lspconfig[server_name].setup {
+      }
    end,
    -- Next, you can provide a dedicated handler for specific servers.
    -- For example, a handler override for the `rust_analyzer`:
@@ -43,7 +32,7 @@ masonLspconfig.setup_handlers {
          settings = {
             Lua = {
                diagnostics = {
-                  globals = { "vim" },
+                  globals = { "vim", "eopts" },
                },
             },
          },
@@ -59,7 +48,7 @@ require("lsp_signature").setup({
       border = "rounded"
    },
    floating_window_off_x = -1, -- negative 1 to align with the border
-   max_height = 2,             -- if u can't explain a function in 1 line i am going to your docs
+   max_height = 4,             -- if u can't explain a function in 1 line i am going to your docs
 })
 
 vim.diagnostic.config({

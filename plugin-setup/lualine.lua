@@ -1,16 +1,23 @@
---disable the startup screen since lua line clears it anway
-vim.opt.shortmess = 'filnxtToOFI'
-local lualine = require 'lualine'
-
-local diffcolors = {
-   added = { fg = '#9ece6a' },
-   modified = { fg = '#e0af68' },
-   removed = { fg = '#f7768e' },
-}
+--disable the startup screen since lua line clears it anyway
+vim.cmd("set shortmess+=I")
+local lualine = require('lualine')
+local colors = require('tokyonight.colors').setup({ transform = true }) 
+local theme = require('lualine.themes.' .. vim.g.colors_name)
+if eopts.lualine_no_mode_colors then
+   theme = {
+      normal = theme.normal,
+      insert = theme.normal,
+      visual = theme.normal,
+      replace = theme.normal,
+      command = theme.normal,
+      terminal = theme.normal,
+      inactive = theme.inactive,
+   }
+end
 
 local config = {
    lualine_a = {
-      'mode', },
+      { 'mode' }, },
    lualine_b = { { 'branch', icon = '' } },
    lualine_c = { {
       "filetype",
@@ -25,10 +32,10 @@ local config = {
       end
    }, {
       'filename',
-      padding = 0,            -- For the icon
-      file_status = true,     -- Displays file status (readonly status, modified status)
-      newfile_status = false, -- Display new file status (new file means no write after created)
-      path = 0,               -- 0: Just the filename
+      padding = 0,           -- For the icon
+      file_status = true,    -- Displays file status (readonly status, modified status)
+      newfile_status = true, -- Display new file status (new file means no write after created)
+      path = 0,              -- 0: Just the filename
       -- 1: Relative path
       -- 2: Absolute path
       -- 3: Absolute path, with tilde as the home directory
@@ -37,10 +44,9 @@ local config = {
       shorting_target = 40, -- Shortens path to leave 40 spaces in the window
       -- for other components. (terrible name, any suggestions?)
       symbols = {
-         -- the space here is because sometimes i modify readonly and the icons get mixed
          modified = ' ', -- Text to show when the file is modified.
          readonly = '', -- Text to show when the file is non-modifiable or readonly.
-         unnamed = '', -- Text to show for unnamed buffers.
+         unnamed = '[Name Me]', -- Text to show for unnamed buffers.
          newfile = '', -- Text to show for newly created file before first write
       }
    }
@@ -56,7 +62,11 @@ local config = {
    lualine_x = { {
       'diff',
       colored = true, -- Displays a colored diff status if set to true
-      diff_color = diffcolors,
+      diff_color = {
+         added = { fg = colors.green },
+         modifed = { fg = colors.yellow },
+         removed = { fg = colors.red },
+      },
       symbols = { added = '+', modified = '󰦒', removed = '-' }, -- Changes the symbols used by the diff.
    } },
    lualine_y = { 'location' },
@@ -66,7 +76,7 @@ local config = {
 lualine.setup {
    options = {
       icons_enabled = true,
-      theme = 'tokyonight',
+      theme = theme,
       component_separators = { left = '', right = '' },
       section_separators = { left = '', right = '' },
       disabled_filetypes = {
@@ -80,7 +90,7 @@ lualine.setup {
          statusline = 30000,
          tabline = 30000,
          winbar = 30000,
-      }
+      },
    },
    sections = vim.deepcopy(config)
    ,
@@ -113,7 +123,4 @@ lualine.setup {
          }
       },
    },
-   winbar = {},
-   inactive_winbar = {},
-   extensions = {}
 }

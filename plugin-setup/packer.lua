@@ -12,13 +12,12 @@ end
 
 local packer_bootstrap = ensure_packer()
 
-return require('packer').startup(function(use)
+local function config(use)
    -- Packer can manage itself
    use 'wbthomason/packer.nvim'
 
    use {
-      'folke/tokyonight.nvim',
-      config = function() vim.cmd.colorscheme('tokyonight-storm') end
+      'folke/tokyonight.nvim'
    }
 
    use {
@@ -51,8 +50,8 @@ return require('packer').startup(function(use)
       -- Autocompletion
       { 'hrsh7th/nvim-cmp' },
       { 'hrsh7th/cmp-buffer' },
-      { 'hrsh7th/cmp-cmdline' },
       { 'hrsh7th/cmp-path' },
+      { 'hrsh7th/cmp-nvim-lua' },
       { 'hrsh7th/cmp-nvim-lsp' },
       -- Snippets
    }
@@ -60,16 +59,27 @@ return require('packer').startup(function(use)
    use "ray-x/lsp_signature.nvim"
    use {
       "Sam-programs/autopairs.nvim",
-      config = function() require("autopairs").setup {} end
+      --      config = function() require("autopairs").setup({}) end
+   }
+   use {
+      "Sam-programs/indent.nvim",
+   }
+   use {
+      "Sam-programs/nvim-autopairs",
    }
    use {
       'nvim-lualine/lualine.nvim',
       requires = { 'nvim-tree/nvim-web-devicons' } --optional
    }
-
+   use 'echasnovski/mini.pairs'
    if packer_bootstrap then
       require('packer').sync()
    end
+end
 
-end)
-
+return require('packer').startup({
+   config,
+   config = {
+      compile_path = vim.fn.stdpath("data") .. "site/pack/packer/start/packer/" .. '/plugin/packer_compiled.lua',
+   },
+})
