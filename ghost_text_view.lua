@@ -15,17 +15,33 @@ local ignored_chars = {
    [":"] = true,
    [","] = true,
    [";"] = true,
-   ["("] = true,
-   [")"] = true,
    ["["] = true,
    ["]"] = true,
-   ["*"] = true,
+   ["{"] = true,
+   ["}"] = true,
+   ["("] = true,
+   [")"] = true,
    ["."] = true,
+   ["#"] = true,
+   ["="] = true,
+   ["+"] = true,
+   ["-"] = true,
+   ["*"] = true,
+   ["/"] = true,
 }
 
 local cached = {
    ["{"] = { "{", "@constructor" },
    ["}"] = { "}", "@constructor" },
+   [")"] = { ")", "@constructor" },
+   ["("] = { "(", "@constructor" },
+   ["="] = { "=", "@operator" },
+   ["+"] = { "+", "@operator" },
+   ["-"] = { "-", "@operator" },
+   ["*"] = { "*", "@operator" },
+   ["/"] = { "/", "@operator" },
+   -- might manage this with an autocommand for python
+   ["#"] = { "#", "@operator" },
 }
 
 local function ts_get_hl(r, start_pos)
@@ -34,6 +50,7 @@ local function ts_get_hl(r, start_pos)
    if #result ~= 0 then
       hl = result[#result].hl_group_link
       if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = hl })) then
+         -- lets hope the 2nd last one is valid
          hl = result[#result - 1].hl_group_link
       end
    end
@@ -83,25 +100,22 @@ ghost_text_view.new = function()
                if i ~= start_pos then
                   text = line:sub(start_pos, i - 1)
                else
+                  -- we matched 2 ignored_chars
                   text = line:sub(start_pos, i)
-               end
-               local hl
-               if ignored_chars[text] then
-                  nodes[#nodes + 1] = { text, "Normal" }
+                  nodes[#nodes + 1] = cached[char] or { text,"Normal" }
                   start_pos = i + 1
                   goto continue
-               else
-                  hl = ts_get_hl(r, start_pos - 1)
                end
+               local hl = ts_get_hl(r, start_pos - 1)
                nodes[#nodes + 1] = { text, hl }
                start_pos = i + 1
-               nodes[#nodes + 1] = { char, "Normal" }
+               nodes[#nodes + 1] = cached[char] or { char, "Normal" }
             end
             if i == #line then
                local text = line:sub(start_pos)
                local hl
                if ignored_chars[text] then
-                  hl = "Normal"
+                  hl = cached[char][2] or "Normal"
                else
                   hl = ts_get_hl(r, start_pos - 1)
                end

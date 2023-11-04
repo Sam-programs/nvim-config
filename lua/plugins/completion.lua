@@ -23,8 +23,11 @@ return {
          local kind = cmp.lsp.CompletionItemKind
          GhostText = vim.api.nvim_get_hl(0, { name = "Comment" })
          GhostText.italic = false
-         vim.print(GhostText)
          vim.api.nvim_set_hl(0, "CmpGhostText", GhostText)
+
+         vim.api.nvim_set_hl(0,"@punctuation.bracket",{
+            link = "@constructor"
+         })
 
          if eopts.cmp_ghost_text_only then
             cmp_win.update = function() end

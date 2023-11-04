@@ -227,8 +227,6 @@ local ignored_chars = {
    [")"] = true,
    ["["] = true,
    ["]"] = true,
-   ["{"] = true,
-   ["}"] = true,
    ["*"] = true,
    ["."] = true,
 }
@@ -239,9 +237,9 @@ local function ts_get_hl(r, start_pos)
    inspect_calls = inspect_calls + 1
    local result = vim.inspect_pos(0, r, start_pos).treesitter
    if #result ~= 0 then
-      hl = result[#result].hl_group_link
-      if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = hl })) then
-         hl = result[#result - 1].hl_group_link
+      hl = result[#result].hl_group
+      if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = result[#result].hl_group_link })) then
+         hl = result[#result - 1].hl_group
       end
    end
    return hl
@@ -274,16 +272,12 @@ keymap('i', '<A-d>',
                text = line:sub(start_pos, i - 1)
             else
                text = line:sub(start_pos, i)
-            end
-            local hl
-            if ignored_chars[text] then
                cached = cached + 1
                nodes[#nodes + 1] = { text, "Normal" }
                start_pos = i + 1
                goto continue
-            else
-               hl = ts_get_hl(r, start_pos - 1)
             end
+            local hl = ts_get_hl(r, start_pos - 1)
             nodes[#nodes + 1] = { text, hl }
             start_pos = i + 1
             nodes[#nodes + 1] = { char, "Normal" }
@@ -298,7 +292,7 @@ keymap('i', '<A-d>',
                hl = ts_get_hl(r, start_pos - 1)
             end
 
-            nodes[#nodes + 1] = { text, hl }
+            nodes[#nodes+1] = { text, hl }
          end
          ::continue::
       end
