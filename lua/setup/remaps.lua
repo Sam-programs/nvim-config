@@ -227,19 +227,16 @@ local ignored_chars = {
    [")"] = true,
    ["["] = true,
    ["]"] = true,
+   ["{"] = true,
+   ["}"] = true,
    ["*"] = true,
    ["."] = true,
 }
 
-local cached = {
-   ["{"] = { "{", "@constructor" },
-   ["}"] = { "}", "@constructor" },
-}
-
-local autocmd = vim.api.nvim_create_autocmd
-
+local inspect_calls = 0
 local function ts_get_hl(r, start_pos)
    local hl = "Normal"
+   inspect_calls = inspect_calls + 1
    local result = vim.inspect_pos(0, r, start_pos).treesitter
    if #result ~= 0 then
       hl = result[#result].hl_group_link
@@ -249,6 +246,9 @@ local function ts_get_hl(r, start_pos)
    end
    return hl
 end
+local cached = 0
+
+local test_str = "Comment {}c"
 
 keymap('i', '<A-d>',
    function()
@@ -264,23 +264,54 @@ keymap('i', '<A-d>',
       local nodes = { { info, "Comment" } }
       cl = cl + 1
       local start_pos = cl
+      inspect_calls = 0
+      cached = 0
       for i = cl, #line, 1 do
          local char = line:sub(i, i)
          if ignored_chars[char] then
-            local hl = ts_get_hl(r, start_pos - 1)
-            local text = line:sub(start_pos, i - 1)
+            local text
+            if i ~= start_pos then
+               text = line:sub(start_pos, i - 1)
+            else
+               text = line:sub(start_pos, i)
+            end
+            local hl
+            if ignored_chars[text] then
+               cached = cached + 1
+               nodes[#nodes + 1] = { text, "Normal" }
+               start_pos = i + 1
+               goto continue
+            else
+               hl = ts_get_hl(r, start_pos - 1)
+            end
             nodes[#nodes + 1] = { text, hl }
             start_pos = i + 1
             nodes[#nodes + 1] = { char, "Normal" }
          end
          if i == #line then
             local text = line:sub(start_pos)
-            local hl = ts_get_hl(r,start_pos - 1)
+            local hl
+            if ignored_chars[text] then
+               cached = cached + 1
+               hl = "Normal"
+            else
+               hl = ts_get_hl(r, start_pos - 1)
+            end
+
             nodes[#nodes + 1] = { text, hl }
          end
+         ::continue::
       end
       local _, sme = uv.gettimeofday()
       local delay = sme - sms
+      clear()
+      for i = 1,#nodes,1 do
+         log(nodes[i][1] .. ','.. nodes[i][2])
+      end
+      log("took:" .. delay)
+      log("inspect calls:" .. inspect_calls)
+      log("cached:" .. cached)
+
       id = vim.api.nvim_buf_set_extmark(0, mark_ns, r, col, {
          id = id,
          virt_text_pos = "overlay",

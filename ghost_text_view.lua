@@ -28,7 +28,6 @@ local cached = {
    ["}"] = { "}", "@constructor" },
 }
 
-
 local function ts_get_hl(r, start_pos)
    local hl = "Normal"
    local result = vim.inspect_pos(0, r, start_pos).treesitter
@@ -70,7 +69,6 @@ ghost_text_view.new = function()
 
          local line = vim.api.nvim_get_current_line()
 
-
          local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
          local config_hl = type(c) == 'table' and c.hl_group or "Comment"
          r = r - 1
@@ -81,17 +79,36 @@ ghost_text_view.new = function()
          for i = cl, #line, 1 do
             local char = line:sub(i, i)
             if ignored_chars[char] then
-               local hl = ts_get_hl(r, start_pos - 1)
-               local text = line:sub(start_pos, i - 1)
+               local text
+               if i ~= start_pos then
+                  text = line:sub(start_pos, i - 1)
+               else
+                  text = line:sub(start_pos, i)
+               end
+               local hl
+               if ignored_chars[text] then
+                  nodes[#nodes + 1] = { text, "Normal" }
+                  start_pos = i + 1
+                  goto continue
+               else
+                  hl = ts_get_hl(r, start_pos - 1)
+               end
                nodes[#nodes + 1] = { text, hl }
                start_pos = i + 1
                nodes[#nodes + 1] = { char, "Normal" }
             end
             if i == #line then
                local text = line:sub(start_pos)
-               local hl = ts_get_hl(r,start_pos - 1)
+               local hl
+               if ignored_chars[text] then
+                  hl = "Normal"
+               else
+                  hl = ts_get_hl(r, start_pos - 1)
+               end
+
                nodes[#nodes + 1] = { text, hl }
             end
+            ::continue::
          end
          if #text > 0 then
             vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, row - 1, col, {
