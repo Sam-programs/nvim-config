@@ -46,81 +46,85 @@ ghost_text_view.new = function()
          end
 
          local line = vim.api.nvim_get_current_line()
-         local cursor_char = line:sub(col + 1,col + 1)
-         if not has_inline then
-            local before_cursor = string.sub(line,1,col + 1)
-            local after_cursor = string.sub(line,col + 1)
-            if ((not string.match(before_cursor,"[([]")) and 
-               after_cursor ~= ';' and after_cursor ~= '>' and after_cursor ~= '') or
-               cursor_char:match("[\"\'`]")
-               then
-                  return
-               end
+
+         local text = self.text_gen(self, line, col)
+         local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
+         r = r - 1
+         local nodes = { { text, type(c) == 'table' and c.hl_group or 'Comment' } }
+         -- sorry if this is too slow
+         for i = 1, #line - cl, 1 do
+            local inspect = vim.inspect_pos(0, r,i + cl - 1)
+            local result = inspect.treesitter
+            local char = line:sub(i + cl, i + cl)
+            if #result ~= 0 then
+               local hl = result[#result].hl_group_link
+               nodes[i + 1] = { char, hl }
+            else
+               nodes[i + 1] = { char, "Normal" }
             end
+         end
 
-            local text = self.text_gen(self, line, col)
-            if #text > 0 then
-               vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, row - 1, col, {
-                  right_gravity = false,
-                  virt_text = { { text, type(c) == 'table' and c.hl_group or 'Comment' } },
-                  virt_text_pos = has_inline and 'inline' or 'overlay',
-                  hl_mode = 'combine',
-                  ephemeral = true,
-               })
-            end
-         end,
-      })
-      return self
+         if #text > 0 then
+            vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, row - 1, col, {
+               right_gravity = false,
+               virt_text = nodes,
+               virt_text_pos = has_inline and 'inline' or 'overlay',
+               ephemeral = true,
+            })
+         end
+      end,
+   })
+   return self
+end
+
+---Generate the ghost text
+---  This function calculates the bytes of the entry to display calculating the number
+---  of character differences instead of just byte difference.
+ghost_text_view.text_gen = function(self, line, cursor_col)
+   local word = self.entry:get_insert_text()
+   if self.entry.completion_item.insertTextFormat == types.lsp.InsertTextFormat.Snippet then
+      word = vim.lsp.util.parse_snippet(word)
    end
-
-   ---Generate the ghost text
-   ---  This function calculates the bytes of the entry to display calculating the number
-   ---  of character differences instead of just byte difference.
-   ghost_text_view.text_gen = function(self, line, cursor_col)
-      local word = self.entry:get_insert_text()
-      if self.entry.completion_item.insertTextFormat == types.lsp.InsertTextFormat.Snippet then
-         word = vim.lsp.util.parse_snippet(word)
-      end
-      word = str.oneline(word)
-      local word_clen = vim.str_utfindex(word)
-      local cword = string.sub(line, self.entry:get_offset(), cursor_col)
-      local cword_clen = vim.str_utfindex(cword)
-      -- Number of characters from entry text (word) to be displayed as ghost thext
-      local nchars = word_clen - cword_clen
-      -- Missing characters to complete the entry text
-      local text
-      if nchars > 0 then
-         text = string.sub(word, vim.str_byteindex(word, word_clen - nchars) + 1)
-      else
-         text = ''
-      end
-      return text
+   word = str.oneline(word)
+   local word_clen = vim.str_utfindex(word)
+   local cword = string.sub(line, self.entry:get_offset(), cursor_col)
+   local cword_clen = vim.str_utfindex(cword)
+   -- Number of characters from entry text (word) to be displayed as ghost thext
+   local nchars = word_clen - cword_clen
+   -- Missing characters to complete the entry text
+   local text
+   if nchars > 0 then
+      text = string.sub(word, vim.str_byteindex(word, word_clen - nchars) + 1)
+   else
+      text = ''
    end
+   return text
+end
 
-   ---Show ghost text
-   ---@param e cmp.Entry
-   ghost_text_view.show = function(self, e)
-      if not api.is_insert_mode() then
-         return
-      end
-      local c = config.get().experimental.ghost_text
-      if not c then
-         return
-      end
-      local changed = e ~= self.entry
-      self.win = vim.api.nvim_get_current_win()
-      self.entry = e
-      if changed then
-         misc.redraw(true) -- force invoke decoration provider.
-      end
+---Show ghost text
+---@param e cmp.Entry
+ghost_text_view.show = function(self, e)
+   if not api.is_insert_mode() then
+      return
    end
-
-   ghost_text_view.hide = function(self)
-      if self.win and self.entry then
-         self.win = nil
-         self.entry = nil
-         misc.redraw(true) -- force invoke decoration provider.
-      end
+   local c = config.get().experimental.ghost_text
+   if not c then
+      return
    end
+   local changed = e ~= self.entry
+   self.win = vim.api.nvim_get_current_win()
+   self.entry = e
+   if changed then
+      misc.redraw(true) -- force invoke decoration provider.
+   end
+end
 
-   return ghost_text_view
+ghost_text_view.hide = function(self)
+   if self.win and self.entry then
+      self.win = nil
+      self.entry = nil
+      misc.redraw(true) -- force invoke decoration provider.
+   end
+end
+
+return ghost_text_view

@@ -1,6 +1,6 @@
-# this is a custom cmp-ghost entry that allows ghost text to work if inside a pair (and not inside a quote)
-# sane people (not me) might not like this
+# this is a script that emulates inline for cmp
+# it doesn't cover semantics tokens and i am not bothered to make it effient enough to handle that for now
+# i plan to optimize it at some point because even with 20 characters it's slow
 
-mkdir -p ~/.local/share/nvim/site/pack/Sam/start/nvim-cmp/lua/cmp/view/ 
-# neovim prefers the file here over packer's i i don't know why but i am very happy it works
-cp ./ghost_text_view.lua ~/.local/share/nvim/site/pack/Sam/start/nvim-cmp/lua/cmp/view/
+mkdir -p ~/.config/nvim/lua/cmp/view/ 
+cp ./ghost_text_view.lua ~/.config/nvim/lua/cmp/view/

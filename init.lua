@@ -25,21 +25,11 @@ eopts = {
       "clangd",
    },
    semicolon_langs = {
-      ['c'] = true,
-      ['cpp'] = true,
-      ['cs'] = true,
+      c = true,
+      cpp = true,
+      cs = true,
    },
 }
-if vim.o.loadplugins then
-   vim.cmd("runtime! plugin/**/*.lua")
-   vim.cmd("runtime! plugin/**/*.vim")
 
-   vim.cmd("runtime! setup/**/*.lua")
-   vim.cmd("runtime! plugin-setup/**/*.lua")
-   -- we load them instead of neovim
-   -- because plugin-setup needs plugin
-   vim.o.loadplugins = false 
-   return
-end
-vim.cmd("runtime! setup/**/*.lua")
-
+require('setup')
+vim.cmd("runtime! lazy.lua")

@@ -26,9 +26,8 @@ vim.opt.scrolloff = 8
 
 vim.opt.updatetime = 50
 
--- removed : cuz it's annoying in c++
-vim.opt.cinkeys = '0{,0},0),0],0#,!^F,o,O,e'
-
 -- usually pretty useless at least for me
 vim.opt.showmode = false
 vim.opt.showcmd = false
+-- shutup
+vim.opt.report = 999999999
