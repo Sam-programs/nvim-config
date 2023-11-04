@@ -10,17 +10,40 @@ local ghost_text_view = {}
 
 ghost_text_view.ns = vim.api.nvim_create_namespace('cmp:GHOST_TEXT')
 
-local has_inline = (function()
-   return (pcall(function()
-      local id = vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, 0, 0, {
-         virt_text = { { ' ', 'Comment' } },
-         virt_text_pos = 'inline',
-         hl_mode = 'combine',
-         ephemeral = false,
-      })
-      vim.api.nvim_buf_del_extmark(0, ghost_text_view.ns, id)
-   end))
-end)()
+local ignored_chars = {
+   [" "] = true,
+   [":"] = true,
+   [","] = true,
+   [";"] = true,
+   ["("] = true,
+   [")"] = true,
+   ["["] = true,
+   ["]"] = true,
+   ["*"] = true,
+   ["."] = true,
+}
+
+local cached = {
+   ["{"] = { "{", "@constructor" },
+   ["}"] = { "}", "@constructor" },
+}
+
+
+local function ts_get_hl(r, start_pos)
+   local hl = "Normal"
+   local result = vim.inspect_pos(0, r, start_pos).treesitter
+   if #result ~= 0 then
+      hl = result[#result].hl_group_link
+      if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = hl })) then
+         hl = result[#result - 1].hl_group_link
+      end
+   end
+   return hl
+end
+
+
+
+
 
 ghost_text_view.new = function()
    local self = setmetatable({}, { __index = ghost_text_view })
@@ -47,28 +70,34 @@ ghost_text_view.new = function()
 
          local line = vim.api.nvim_get_current_line()
 
-         local text = self.text_gen(self, line, col)
+
          local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
+         local config_hl = type(c) == 'table' and c.hl_group or "Comment"
          r = r - 1
-         local nodes = { { text, type(c) == 'table' and c.hl_group or 'Comment' } }
-         -- sorry if this is too slow
-         for i = 1, #line - cl, 1 do
-            local inspect = vim.inspect_pos(0, r,i + cl - 1)
-            local result = inspect.treesitter
-            local char = line:sub(i + cl, i + cl)
-            if #result ~= 0 then
-               local hl = result[#result].hl_group_link
-               nodes[i + 1] = { char, hl }
-            else
-               nodes[i + 1] = { char, "Normal" }
+         local text = self.text_gen(self, line, col)
+         local nodes = { { text, config_hl } }
+         cl = cl + 1
+         local start_pos = cl
+         for i = cl, #line, 1 do
+            local char = line:sub(i, i)
+            if ignored_chars[char] then
+               local hl = ts_get_hl(r, start_pos - 1)
+               local text = line:sub(start_pos, i - 1)
+               nodes[#nodes + 1] = { text, hl }
+               start_pos = i + 1
+               nodes[#nodes + 1] = { char, "Normal" }
+            end
+            if i == #line then
+               local text = line:sub(start_pos)
+               local hl = ts_get_hl(r,start_pos - 1)
+               nodes[#nodes + 1] = { text, hl }
             end
          end
-
          if #text > 0 then
             vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, row - 1, col, {
                right_gravity = false,
                virt_text = nodes,
-               virt_text_pos = has_inline and 'inline' or 'overlay',
+               virt_text_pos = 'overlay',
                ephemeral = true,
             })
          end
@@ -80,6 +109,12 @@ end
 ---Generate the ghost text
 ---  This function calculates the bytes of the entry to display calculating the number
 ---  of character differences instead of just byte difference.
+
+local kind = require('cmp.types.lsp').CompletionItemKind
+local semicolon_langs = {
+   cpp = true,
+   c = true,
+}
 ghost_text_view.text_gen = function(self, line, cursor_col)
    local word = self.entry:get_insert_text()
    if self.entry.completion_item.insertTextFormat == types.lsp.InsertTextFormat.Snippet then
@@ -95,6 +130,22 @@ ghost_text_view.text_gen = function(self, line, cursor_col)
    local text
    if nchars > 0 then
       text = string.sub(word, vim.str_byteindex(word, word_clen - nchars) + 1)
+      local item = self.entry:get_completion_item()
+      if item.kind == kind.Function or item.kind == kind.Method then
+         text = text .. '()'
+         if semicolon_langs[vim.o.ft] and
+             cursor_col == #line and
+             line:sub(#line, #line) ~= ';'
+         then
+            text = text .. ';'
+         end
+      else
+         if vim.o.ft == "cpp" and
+             vim.fn.match(item.label, '<.*>') ~= -1
+         then
+            text = text .. '<>'
+         end
+      end
    else
       text = ''
    end

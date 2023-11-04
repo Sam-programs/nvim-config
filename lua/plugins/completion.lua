@@ -21,6 +21,10 @@ return {
          local cmp_win = require('cmp.utils.window')
          local cmp_performance = nil
          local kind = cmp.lsp.CompletionItemKind
+         GhostText = vim.api.nvim_get_hl(0, { name = "Comment" })
+         GhostText.italic = false
+         vim.print(GhostText)
+         vim.api.nvim_set_hl(0, "CmpGhostText", GhostText)
 
          if eopts.cmp_ghost_text_only then
             cmp_win.update = function() end
@@ -48,8 +52,8 @@ return {
                throttle                = 0,
                debounce                = 0,
                fetching_timeout        = 0,
-               -- we only have 1 ghost_text'd item so
-               max_view_entries        = 1,
+               -- useful for S-Tab
+               max_view_entries        = 10,
             }
          end
 
@@ -62,6 +66,7 @@ return {
          end
 
          cmp.setup({
+            enabled = true,
             mapping = cmp.mapping.preset.insert({
                ["<tab>"] = cmp.mapping(function(fallback)
                   if cmp.visible() then
@@ -95,13 +100,15 @@ return {
                   local replace = vim.split(args.body, '\n', true)
                   local cursor_pos = col + #replace[1]
                   replace[1] = line_text:sub(1, col) .. replace[1] .. line_text:sub(col + 1)
-                  replace = {replace[1]}
+                  replace = { replace[1] }
                   vim.api.nvim_buf_set_lines(0, line_num - 1, line_num, true, replace)
                   vim.api.nvim_win_set_cursor(0, { line_num, cursor_pos })
                end,
             },
             experimental = {
-               ghost_text = true
+               ghost_text = {
+                  hl_group = "CmpGhostText"
+               }
             },
             performance = cmp_performance,
          })
@@ -155,7 +162,10 @@ return {
             local pairs = ''
             local functionsig = item.label
             local is_function = item.kind == kind.Function
-            if line:sub(c, c) ~= '>' and
+            if is_function then
+               return
+            end
+            if line:sub(c, c) ~= '>' or
                 (vim.fn.match(functionsig, '<.*>') ~= -1 or
                    functionsig == ' template')
             then
@@ -166,7 +176,6 @@ return {
                local old_lz = vim.o.lz
                vim.o.lz = true
                pairs = vim.api.nvim_replace_termcodes(
-                  (is_function and "<C-g>u<left>" or "") ..
                   pairs .. "<C-g>u<left>" .. "<cmd>lua vim.o.lz =" .. (old_lz and "true" or "false") .. "<cr>", true,
                   false, true)
                vim.api.nvim_feedkeys(pairs, "n", false)
@@ -184,7 +193,7 @@ return {
             })
             loaded_cpp_sort = true
          end
-         require('autopairs').setup{}
+         require('autopairs').setup {}
          cmp.event:on('confirm_done', pair_on_confirm)
          cmp.event:on('confirm_done', template_on_confirm)
 

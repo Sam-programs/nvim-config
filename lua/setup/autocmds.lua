@@ -11,6 +11,7 @@ autocmd({ "BufRead" }, {
    end
 })
 
+
 autocmd({ "User" }, {
    pattern = "LspProgressUpdate",
    callback = function()

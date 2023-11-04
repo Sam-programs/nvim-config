@@ -1,6 +1,8 @@
-# this is a script that emulates inline for cmp
-# it doesn't cover semantics tokens and i am not bothered to make it effient enough to handle that for now
-# i plan to optimize it at some point because even with 20 characters it's slow
+# this script is not done yet and i disbaled it for performance as of rn
+#
+# this is a script that emulates inline ghost text for cmp
+# it doesn't cover semantics tokens like "unpack"
+# it also adds () pairs and ; to ghost text
 
 mkdir -p ~/.config/nvim/lua/cmp/view/ 
-cp ./ghost_text_view.lua ~/.config/nvim/lua/cmp/view/
+ln ~/.config/nvim/ghost_text_view.lua ~/.config/nvim/lua/cmp/view/ghost_text_view.lua -sf

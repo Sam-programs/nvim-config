@@ -173,51 +173,121 @@ keymap({ 'n', 'v' }, '<M-CR>', 'gx');
 keymap('n', 'q', '');
 keymap('n', '<A-c>', '1z=');
 
-local mark_ns = vim.api.nvim_create_namespace('myplugin')
-local ts = vim.treesitter
-keymap('n', '<C-q>', function()
-   local r, c = unpack(vim.api.nvim_win_get_cursor(0))
-   r = r - 1
-   local line = vim.api.nvim_get_current_line()
-   local nodes = { { "foobar", "MatchParen" } }
-   for i = 1, #line - c, 1 do
-      local inspect = vim.inspect_pos(0, r, i + c - 1)
-      local result = inspect.treesitter
-      local node1 = line:sub(i + c, i + c)
-      local lsp_hls = inspect.semantic_tokens
-      local hl = nil
-      local priority = 0
-      for j = 1, #lsp_hls, 1 do
-         if lsp_hls[j].opts.priority > priority then
-            if vim.tbl_isempty(
-                   vim.api.nvim_get_hl(0, {
-                      name = lsp_hls[j].hl_group_link
-                   })) == false
-            then
-               priority = lsp_hls[j].opts.priority
-               hl = lsp_hls[j].opts.hl_group_link
-            end
-         end
-      end
-      if not hl then
-         for j = 1, #result, 1 do
-            if not vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = result[j].hl_group_link })) then
-               hl = result[j].hl_group_link
-            end
-         end
-      end
-      if not hl then
-         hl = "Normal"
-      end
-     nodes[i + 1] = { node1, hl }
-   end
-   vim.inspect(nodes)
-   id = vim.api.nvim_buf_set_extmark(0, mark_ns, r, c, {
-      id = id,
-      virt_text = nodes,
-      virt_text_pos = "overlay",
-   })
+
+if DEBUG_BUFER == nil then
+   DEBUG_BUFER = -1
+end
+
+keymap('n', '<A-d>', function()
+   DEBUG_BUFER = vim.api.nvim_get_current_buf()
 end)
+
+
+function clear()
+   vim.api.nvim_buf_set_lines(DEBUG_BUFER, 0, -1, false, {})
+end
+
+function log(data)
+   if type(data) == 'string' then
+      data = vim.split(data, '\n')
+      vim.api.nvim_buf_set_lines(DEBUG_BUFER, -2, -2, false, data)
+      return
+   end
+   vim.api.nvim_buf_set_lines(DEBUG_BUFER, -1, -1, false, data)
+end
+
+local ts = vim.treesitter
+local mark_ns = vim.api.nvim_create_namespace('myplugin')
+
+local function print_family(parent, depth)
+   if parent:named() then
+      local text = ts.get_node_text(parent, 0, {})
+      log(string.format(string.rep('\t', depth) .. "%s %d,%d,%d,%d " .. (parent:named() and "Named" or "UnNamed"),
+         text, parent:range()))
+   end
+   for kid in parent:iter_children() do
+      if kid:child_count() ~= 0 then
+         print_family(kid, depth + 1)
+      else
+         if kid:named() then
+            local text = ts.get_node_text(kid, 0, {})
+            log(string.format(string.rep('\t', depth) .. "%s %d,%d,%d,%d " .. (kid:named() and "Named" or "UnNamed"),
+               text, kid:range()))
+         end
+      end
+   end
+end
+
+local ignored_chars = {
+   [" "] = true,
+   [":"] = true,
+   [","] = true,
+   [";"] = true,
+   ["("] = true,
+   [")"] = true,
+   ["["] = true,
+   ["]"] = true,
+   ["*"] = true,
+   ["."] = true,
+}
+
+local cached = {
+   ["{"] = { "{", "@constructor" },
+   ["}"] = { "}", "@constructor" },
+}
+
+local autocmd = vim.api.nvim_create_autocmd
+
+local function ts_get_hl(r, start_pos)
+   local hl = "Normal"
+   local result = vim.inspect_pos(0, r, start_pos).treesitter
+   if #result ~= 0 then
+      hl = result[#result].hl_group_link
+      if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = hl })) then
+         hl = result[#result - 1].hl_group_link
+      end
+   end
+   return hl
+end
+
+keymap('i', '<A-d>',
+   function()
+      local info = "foobar"
+      local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
+      local col = cl
+      r = r - 1
+      local line = vim.api.nvim_get_current_line()
+
+      local uv = vim.loop
+      local _, sms = uv.gettimeofday()
+
+      local nodes = { { info, "Comment" } }
+      cl = cl + 1
+      local start_pos = cl
+      for i = cl, #line, 1 do
+         local char = line:sub(i, i)
+         if ignored_chars[char] then
+            local hl = ts_get_hl(r, start_pos - 1)
+            local text = line:sub(start_pos, i - 1)
+            nodes[#nodes + 1] = { text, hl }
+            start_pos = i + 1
+            nodes[#nodes + 1] = { char, "Normal" }
+         end
+         if i == #line then
+            local text = line:sub(start_pos)
+            local hl = ts_get_hl(r,start_pos - 1)
+            nodes[#nodes + 1] = { text, hl }
+         end
+      end
+      local _, sme = uv.gettimeofday()
+      local delay = sme - sms
+      id = vim.api.nvim_buf_set_extmark(0, mark_ns, r, col, {
+         id = id,
+         virt_text_pos = "overlay",
+         virt_text = nodes,
+      })
+   end
+)
 
 if false then
    -- highlight links when on the cursor
