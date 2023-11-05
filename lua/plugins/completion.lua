@@ -25,10 +25,6 @@ return {
          GhostText.italic = false
          vim.api.nvim_set_hl(0, "CmpGhostText", GhostText)
 
-         vim.api.nvim_set_hl(0,"@punctuation.bracket",{
-            link = "@constructor"
-         })
-
          if eopts.cmp_ghost_text_only then
             cmp_win.update = function() end
             cmp_win.open = function(self, style)

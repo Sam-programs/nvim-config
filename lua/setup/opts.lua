@@ -4,6 +4,8 @@ vim.opt.nu = true
 vim.opt.rnu = true
 vim.opt.scl = "yes" 
 
+vim.opt.matchpairs = "{:}"
+
 vim.opt.tabstop = 3
 vim.opt.softtabstop = 3
 vim.opt.shiftwidth = 3

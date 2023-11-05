@@ -43,9 +43,15 @@ local split_chars = {
    ["8"] = true,
    ["9"] = true,
 
-   -- operators for insane people that write operators with no spaces
-   ["#"] = true,
+   [">"] = true,
    ["="] = true,
+   ["<"] = true,
+
+   ["$"] = true,
+   ["#"] = true,
+
+   ["^"] = true,
+   ["%"] = true,
    ["+"] = true,
    ["-"] = true,
    ["*"] = true,
@@ -54,62 +60,62 @@ local split_chars = {
 
 -- first time each is used will be memomized for the next usages
 -- saved per filetype
-local memomize = {
-   [" "] = true,
+local memomize = split_chars
 
-   [","] = true,
-   ["."] = true,
-
-   [":"] = true,
-   [";"] = true,
-
-   ["["] = true,
-   ["]"] = true,
-
-   ["{"] = true,
-   ["}"] = true,
-
-   ["("] = true,
-   [")"] = true,
-
-   ["#"] = true,
-   ["="] = true,
-   ["+"] = true,
-   ["-"] = true,
-   ["*"] = true,
-   ["/"] = true,
-
-   ["0"] = true,
-   ["1"] = true,
-   ["2"] = true,
-   ["3"] = true,
-   ["4"] = true,
-   ["5"] = true,
-   ["6"] = true,
-   ["7"] = true,
-   ["8"] = true,
-   ["9"] = true,
+local pre_defined = {
+   ["0"] = {"0","@number"},
+   ["1"] = {"1","@number"},
+   ["2"] = {"2","@number"},
+   ["3"] = {"3","@number"},
+   ["4"] = {"4","@number"},
+   ["5"] = {"5","@number"},
+   ["6"] = {"6","@number"},
+   ["7"] = {"7","@number"},
+   ["8"] = {"8","@number"},
+   ["9"] = {"9","@number"},
 }
 
 local cache = {}
 local inspect_calls = 0
-local function ts_get_hl(r, start_pos)
-   local hl = "Normal"
-   inspect_calls = inspect_calls + 1
-   local result = vim.inspect_pos(0, r, start_pos).treesitter
-   if #result ~= 0 then
-      hl = result[#result].hl_group_link
-      if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = hl })) then
-         -- lets hope the 2nd last one is valid
-         hl = result[#result - 1].hl_group_link
-      end
-   end
-   return hl
+
+local function hl_iscleared(hl_name)
+   return  vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = hl_name }))
 end
 
+local function get_pos_hl(r, start_pos)
+   inspect_calls = inspect_calls + 1
+   local result = vim.inspect_pos(0, r, start_pos)
+   local lsp_hls = result.semantic_tokens
+   if #lsp_hls ~= 0 then
+      local hl
+      local priority = 0
+      for _,lsp_hl in pairs(lsp_hls)  do
+         local opts = lsp_hl.opts
+         if priority < opts.priority and
+            not hl_iscleared(opts.hl_group_link)
+         then
+            hl = opts.hl_group_link
+            priority = opts.priority
+         end
+      end
+      if hl then
+         return hl
+      end
+   end
+   local ts_hls = result.treesitter
+   if #ts_hls ~= 0 then
+      for i = #ts_hls,0,-1 do
+         if not hl_iscleared(ts_hls[i].hl_group_link) then
+            return ts_hls[i].hl_group_link
+         end
+      end
+   end
+   return "Normal"
+end
 
-
-
+local function get_cached_virt_text(lang,char)
+   return cache[lang][cache] or pre_defined[char]
+end
 
 ghost_text_view.new = function()
    local self = setmetatable({}, { __index = ghost_text_view })
@@ -155,33 +161,39 @@ ghost_text_view.new = function()
                if i ~= start_pos then
                   text = line:sub(start_pos, i - 1)
                else
-                  -- we matched 2 ignored_chars
+                  -- we matched 2 split_chars 
                   if not cache[lang][char] and memomize[char] then
-                     cache[lang][char] = {char,ts_get_hl(r,i - 1)}
+                     cache[lang][char] = {char,get_pos_hl(r,i - 1)}
                   end
                   text = line:sub(start_pos, i)
-                  nodes[#nodes + 1] = cache[lang][char] or { text,"Normal" }
+                  nodes[#nodes + 1] = 
+                  cache[lang][char] or pre_defined[char] or 
+                  { text,"Normal" }
                   start_pos = i + 1
                   goto continue
                end
-               local hl = ts_get_hl(r, start_pos - 1)
+               local hl = get_pos_hl(r, start_pos - 1)
                nodes[#nodes + 1] = { text, hl }
                start_pos = i + 1
                if not cache[lang][char] and memomize[char] then
-                  cache[lang][char] = {char,ts_get_hl(r,i - 1)}
+                  cache[lang][char] = {char,get_pos_hl(r,i - 1)}
                end
-               nodes[#nodes + 1] = cache[lang][char] or { char, "Normal" }
+               nodes[#nodes + 1] = 
+               get_cached_virt_text(lang,char) or 
+               { char, "Normal" }
             end
             if i == #line then
                local text = line:sub(start_pos)
                local hl
                if split_chars[text] then
                   if not cache[lang][char] and memomize[char] then
-                     cache[lang][char] = {char,ts_get_hl(r,i - 1)}
+                     cache[lang][char] = {char,get_pos_hl(r,i - 1)}
                   end
-                  hl = cache[lang][char] or {text,"Normal"}
+                  hl = 
+                  get_cached_virt_text(lang,char) or 
+                  {text,"Normal"}
                else
-                  hl = ts_get_hl(r, start_pos - 1)
+                  hl = get_pos_hl(r, start_pos - 1)
                end
 
                nodes[#nodes + 1] = { text, hl }
