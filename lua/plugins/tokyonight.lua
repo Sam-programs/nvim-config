@@ -25,6 +25,8 @@ return {
          vim.api.nvim_set_hl(0,"@punctuation.bracket",{
             link = "@constructor"
          })
+         vim.api.nvim_set_hl(0,"@lsp.type.macro.cpp",{
+         })
       end,
    },
 

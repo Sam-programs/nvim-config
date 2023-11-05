@@ -10,18 +10,40 @@ local ghost_text_view = {}
 
 ghost_text_view.ns = vim.api.nvim_create_namespace('cmp:GHOST_TEXT')
 
-local ignored_chars = {
+-- ghost text emulation tables
+
+-- items that split the line since i didn't find an effient way to parse TSNodes
+local split_chars = {
    [" "] = true,
-   [":"] = true,
+
    [","] = true,
+   ["."] = true,
+
+   [":"] = true,
    [";"] = true,
+
+
    ["["] = true,
    ["]"] = true,
+
    ["{"] = true,
    ["}"] = true,
+
    ["("] = true,
    [")"] = true,
-   ["."] = true,
+
+   ["0"] = true,
+   ["1"] = true,
+   ["2"] = true,
+   ["3"] = true,
+   ["4"] = true,
+   ["5"] = true,
+   ["6"] = true,
+   ["7"] = true,
+   ["8"] = true,
+   ["9"] = true,
+
+   -- operators for insane people that write operators with no spaces
    ["#"] = true,
    ["="] = true,
    ["+"] = true,
@@ -30,22 +52,50 @@ local ignored_chars = {
    ["/"] = true,
 }
 
-local cached = {
-   ["{"] = { "{", "@constructor" },
-   ["}"] = { "}", "@constructor" },
-   [")"] = { ")", "@constructor" },
-   ["("] = { "(", "@constructor" },
-   ["="] = { "=", "@operator" },
-   ["+"] = { "+", "@operator" },
-   ["-"] = { "-", "@operator" },
-   ["*"] = { "*", "@operator" },
-   ["/"] = { "/", "@operator" },
-   -- might manage this with an autocommand for python
-   ["#"] = { "#", "@operator" },
+-- first time each is used will be memomized for the next usages
+-- saved per filetype
+local memomize = {
+   [" "] = true,
+
+   [","] = true,
+   ["."] = true,
+
+   [":"] = true,
+   [";"] = true,
+
+   ["["] = true,
+   ["]"] = true,
+
+   ["{"] = true,
+   ["}"] = true,
+
+   ["("] = true,
+   [")"] = true,
+
+   ["#"] = true,
+   ["="] = true,
+   ["+"] = true,
+   ["-"] = true,
+   ["*"] = true,
+   ["/"] = true,
+
+   ["0"] = true,
+   ["1"] = true,
+   ["2"] = true,
+   ["3"] = true,
+   ["4"] = true,
+   ["5"] = true,
+   ["6"] = true,
+   ["7"] = true,
+   ["8"] = true,
+   ["9"] = true,
 }
 
+local cache = {}
+local inspect_calls = 0
 local function ts_get_hl(r, start_pos)
    local hl = "Normal"
+   inspect_calls = inspect_calls + 1
    local result = vim.inspect_pos(0, r, start_pos).treesitter
    if #result ~= 0 then
       hl = result[#result].hl_group_link
@@ -86,36 +136,50 @@ ghost_text_view.new = function()
 
          local line = vim.api.nvim_get_current_line()
 
-         local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
          local config_hl = type(c) == 'table' and c.hl_group or "Comment"
+         local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
          r = r - 1
          local text = self.text_gen(self, line, col)
          local nodes = { { text, config_hl } }
          cl = cl + 1
          local start_pos = cl
+         local lang = vim.o.filetype
+         if not cache[lang] then
+            cache[lang] = {}
+         end
+         inspect_calls = 0
          for i = cl, #line, 1 do
             local char = line:sub(i, i)
-            if ignored_chars[char] then
+            if split_chars[char] then
                local text
                if i ~= start_pos then
                   text = line:sub(start_pos, i - 1)
                else
                   -- we matched 2 ignored_chars
+                  if not cache[lang][char] and memomize[char] then
+                     cache[lang][char] = {char,ts_get_hl(r,i - 1)}
+                  end
                   text = line:sub(start_pos, i)
-                  nodes[#nodes + 1] = cached[char] or { text,"Normal" }
+                  nodes[#nodes + 1] = cache[lang][char] or { text,"Normal" }
                   start_pos = i + 1
                   goto continue
                end
                local hl = ts_get_hl(r, start_pos - 1)
                nodes[#nodes + 1] = { text, hl }
                start_pos = i + 1
-               nodes[#nodes + 1] = cached[char] or { char, "Normal" }
+               if not cache[lang][char] and memomize[char] then
+                  cache[lang][char] = {char,ts_get_hl(r,i - 1)}
+               end
+               nodes[#nodes + 1] = cache[lang][char] or { char, "Normal" }
             end
             if i == #line then
                local text = line:sub(start_pos)
                local hl
-               if ignored_chars[text] then
-                  hl = cached[char][2] or "Normal"
+               if split_chars[text] then
+                  if not cache[lang][char] and memomize[char] then
+                     cache[lang][char] = {char,ts_get_hl(r,i - 1)}
+                  end
+                  hl = cache[lang][char] or {text,"Normal"}
                else
                   hl = ts_get_hl(r, start_pos - 1)
                end
@@ -124,6 +188,8 @@ ghost_text_view.new = function()
             end
             ::continue::
          end
+         text = text .. inspect_calls
+         nodes[1] = {text,config_hl}
          if #text > 0 then
             vim.api.nvim_buf_set_extmark(0, ghost_text_view.ns, row - 1, col, {
                right_gravity = false,

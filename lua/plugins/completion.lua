@@ -8,7 +8,7 @@ return {
       event = "VeryLazy"
    },
    {
-      'hrsh7th/nvim-cmp',
+      'Sam-programs/nvim-cmp',
       dependencies = {
          { 'hrsh7th/cmp-buffer' },
          { 'hrsh7th/cmp-path' },
