@@ -71,20 +71,23 @@ keymap("v", "y", "\"+y")
 keymap("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/<Left>]])
 keymap("n", "<leader>g", [[:%s/<C-r><C-w>/<C-r><C-w>/<Left>]])
 
-keymap("n", "<leader>l", "<cmd>tabnext<CR>")
-keymap("n", "<leader>h", "<cmd>tabprev<CR>")
-keymap("n", "<leader>1", "1gt")
-keymap("n", "<leader>2", "2gt")
-keymap("n", "<leader>3", "3gt")
-keymap("n", "<leader>4", "4gt")
-keymap("n", "<leader>5", "5gt")
-keymap("n", "<leader>t", ":tabe ")
+keymap("n", "<A-l>", "<cmd>tabnext<CR>")
+keymap("n", "<A-h>", "<cmd>tabprev<CR>")
+keymap("n", "<A-1>", "1gt")
+keymap("n", "<A-2>", "2gt")
+keymap("n", "<A-3>", "3gt")
+keymap("n", "<A-4>", "4gt")
+keymap("n", "<A-5>", "5gt")
+keymap("n", "<A-6>", "6gt")
+keymap("n", "<A-7>", "7gt")
+keymap("n", "<A-8>", "8gt")
+keymap("n", "<A-t>", ":tabe ")
 
 keymap("n", "<C-a>", "ggVG")
 keymap("v", "<C-a>", "<ESC>ggVG")
 
-keymap("n", "<C-s>", "<CMD>mksession! lastsession.vim<CR>")
-keymap("n", "<C-l>", "<CMD>source lastsession.vim<CR>")
+keymap("n", "<C-s>", "<cmd>echo \"saved session\"<cr><CMD>mksession! lastsession.vim<CR>")
+keymap("n", "<C-l>", "<CMD>source lastsession.vim<CR><cmd>echo \"loaded session\"<cr>")
 
 -- got this idea from fuadsaud on github
 keymap({ "o", "n", "v" }, "L", "$")
@@ -106,74 +109,76 @@ keymap("i", "<A-j>", "<cmd>AddSemi<cr><end><cr>")              -- create a line 
 keymap("i", "<A-s>", "<cmd>AddSemi<cr><down><cmd>SemiEnd<cr>") -- go onto statement's pair add semicolon
 keymap("i", "<C-j>", "<cmd>AddSemi<cr><down><end><cr>")        -- jump out of pair and add semicolon
 
--- big boi stuff now
-
 local function esc(str)
    return vim.api.nvim_replace_termcodes(str, true, false, true)
 end
 
-keymap("i", "<C-u>", function() -- delete function
-   -- undo blocks didn't work well for all situations so i made this
-   local line = vim.api.nvim_get_current_line()
-   local r, c = unpack(vim.api.nvim_win_get_cursor(0))
-   local prev = line:sub(c, c)
-   local current = line:sub(c + 1, c + 1)
-   local after_cursor = line:sub(c + 1)
-   local wordend = c
-   if prev == ')' then
-      local pairs_left = 0
-      for i = c - 1, 1, -1 do
-         local char = line:sub(i, i)
-         if char == ')' then
-            pairs_left = pairs_left + 1
-         end
-         if char == '(' then
-            if pairs_left == 0 then
-               line = line:sub(1, i - 1)
-               if i ~= 1 then
-                  wordend = i - 1
-               end
-               break
-            end
-            pairs_left = pairs_left - 1
-         end
-      end
-      for i = wordend, 1, -1 do
-         local char = line:sub(i, i)
-         if char:match("%w") == nil then
-            line = line:sub(1, i)
-            break
-         end
-         if i == 1 then
-            line = ''
-            break
-         end
-      end
-      c = #line
-      line = line .. after_cursor
-      vim.api.nvim_set_current_line(line)
-      vim.api.nvim_win_set_cursor(0, { r, c })
-      vim.api.nvim_feedkeys(esc("<C-g>u"), "n", false)
-      return
-   end
-   vim.cmd("undo")
-end)
 
+local function get_hl(r, pos)
+   pos = pos - 1
+   local result = vim.inspect_pos(0, r, pos)
+   local lsp_hls = result.semantic_tokens
+   if #lsp_hls ~= 0 then
+      local hl
+      local priority = 0
+      for _,lsp_hl in pairs(lsp_hls)  do
+         local opts = lsp_hl.opts
+         if priority < opts.priority and
+            not hl_iscleared(opts.hl_group_link)
+         then
+            hl = opts.hl_group_link
+            priority = opts.priority
+         end
+      end
+      if hl then
+         return hl
+      end
+   end
+   local ts_hls = result.treesitter
+   if #ts_hls ~= 0 then
+      for i = #ts_hls,1,-1 do
+         if not hl_iscleared(ts_hls[i].hl_group_link) then
+            return ts_hls[i].hl_group_link
+         end
+      end
+   end
+   local syntax_hls = result.syntax
+   if #syntax_hls ~= 0 then
+      return syntax_hls[#syntax_hls].hl_group_link
+   end
+   return "Normal"
+end
+
+
+
+
+
+
+
+
+local buf = -1
 keymap('i', '<C-q>', function()
-   local keys = vim.api.nvim_get_keymap('i');
-   for _, map in pairs(keys) do
-      if map.lhs == '<C-q>' then
-         print('success')
-         return map.callback()
+   local r,c = unpack(vim.api.nvim_win_get_cursor(0))
+   r = r - 1
+   local hls = {}
+   local line = vim.api.nvim_get_current_line()
+   for i = c, #line, 1 do
+      local result = vim.inspect_pos(0,r,i - 1,{})
+      local syntax_hls = result.syntax
+      if #syntax_hls ~= 0 then
+         table.insert(hls,syntax_hls[#syntax_hls].hl_group_link)
       end
    end
-end, { expr = true })
-keymap({ 'n', 'v' }, '<M-CR>', 'gx');
+   vim.print(hls)
+end,{expr = true})
+
+keymap({ 'n', 'v', 'c' }, '<M-CR>', 'gx');
 -- macros are annoying
-keymap('n', 'q', '');
-keymap('n', '<A-c>', '1z=');
+keymap('i', '<A-a>', function()
+   print(vim.fn.pumvisible())
+end);
 
-
+vim.keymap.set('c', '<tab>', '<C-z>', { silent = false }) -- to fix cmp
 if DEBUG_BUFER == nil then
    DEBUG_BUFER = -1
 end
@@ -182,6 +187,13 @@ keymap('n', '<A-d>', function()
    DEBUG_BUFER = vim.api.nvim_get_current_buf()
 end)
 
+-- - 5 hours + 0 progress should have went to neovim's c code rather than trying to make work arounds
+-- update still didn't go to the source code
+--keymap('i', '<A-l>', function()
+--   local keys = 'text'
+--   vim.cmd ('normal i' .. keys)
+--   vim.api.nvim_feedkeys(esc('<cmd>echo getreg(\'.\')<cr>'),'i',false)
+--end)
 
 function clear()
    vim.api.nvim_buf_set_lines(DEBUG_BUFER, 0, -1, false, {})
@@ -196,123 +208,16 @@ function log(data)
    vim.api.nvim_buf_set_lines(DEBUG_BUFER, -1, -1, false, data)
 end
 
-local ts = vim.treesitter
-local mark_ns = vim.api.nvim_create_namespace('myplugin')
+keymap("n", "p", "\"+P")
 
-local function print_family(parent, depth)
-   if parent:named() then
-      local text = ts.get_node_text(parent, 0, {})
-      log(string.format(string.rep('\t', depth) .. "%s %d,%d,%d,%d " .. (parent:named() and "Named" or "UnNamed"),
-         text, parent:range()))
-   end
-   for kid in parent:iter_children() do
-      if kid:child_count() ~= 0 then
-         print_family(kid, depth + 1)
-      else
-         if kid:named() then
-            local text = ts.get_node_text(kid, 0, {})
-            log(string.format(string.rep('\t', depth) .. "%s %d,%d,%d,%d " .. (kid:named() and "Named" or "UnNamed"),
-               text, kid:range()))
-         end
-      end
-   end
-end
 
-local ignored_chars = {
-   [" "] = true,
-   [":"] = true,
-   [","] = true,
-   [";"] = true,
-   ["("] = true,
-   [")"] = true,
-   ["["] = true,
-   ["]"] = true,
-   ["*"] = true,
-   ["."] = true,
-}
-
-local inspect_calls = 0
-local function ts_get_hl(r, start_pos)
-   local hl = "Normal"
-   inspect_calls = inspect_calls + 1
-   local result = vim.inspect_pos(0, r, start_pos).treesitter
-   if #result ~= 0 then
-      hl = result[#result].hl_group
-      if vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = result[#result].hl_group_link })) then
-         hl = result[#result - 1].hl_group
-      end
-   end
-   return hl
-end
-local cached = 0
-
-local test_str = "Comment {}c"
-
-keymap('i', '<A-d>',
-   function()
-      local info = "foobar"
-      local r, cl = unpack(vim.api.nvim_win_get_cursor(0))
-      local col = cl
-      r = r - 1
-      local line = vim.api.nvim_get_current_line()
-
-      local uv = vim.loop
-      local _, sms = uv.gettimeofday()
-
-      local nodes = { { info, "Comment" } }
-      cl = cl + 1
-      local start_pos = cl
-      inspect_calls = 0
-      cached = 0
-      for i = cl, #line, 1 do
-         local char = line:sub(i, i)
-         if ignored_chars[char] then
-            local text
-            if i ~= start_pos then
-               text = line:sub(start_pos, i - 1)
-            else
-               text = line:sub(start_pos, i)
-               cached = cached + 1
-               nodes[#nodes + 1] = { text, "Normal" }
-               start_pos = i + 1
-               goto continue
-            end
-            local hl = ts_get_hl(r, start_pos - 1)
-            nodes[#nodes + 1] = { text, hl }
-            start_pos = i + 1
-            nodes[#nodes + 1] = { char, "Normal" }
-         end
-         if i == #line then
-            local text = line:sub(start_pos)
-            local hl
-            if ignored_chars[text] then
-               cached = cached + 1
-               hl = "Normal"
-            else
-               hl = ts_get_hl(r, start_pos - 1)
-            end
-
-            nodes[#nodes+1] = { text, hl }
-         end
-         ::continue::
-      end
-      local _, sme = uv.gettimeofday()
-      local delay = sme - sms
-      clear()
-      for i = 1,#nodes,1 do
-         log(nodes[i][1] .. ','.. nodes[i][2])
-      end
-      log("took:" .. delay)
-      log("inspect calls:" .. inspect_calls)
-      log("cached:" .. cached)
-
-      id = vim.api.nvim_buf_set_extmark(0, mark_ns, r, col, {
-         id = id,
-         virt_text_pos = "overlay",
-         virt_text = nodes,
-      })
-   end
-)
+local diagnosticsOn = false
+keymap('i', '<C-d>', function()
+   diagnosticsOn = not diagnosticsOn
+   vim.diagnostic.config({
+      update_in_insert = diagnosticsOn,
+   })
+end)
 
 if false then
    -- highlight links when on the cursor

@@ -2,9 +2,6 @@ vim.opt.guicursor = ""
 
 vim.opt.nu = true
 vim.opt.rnu = true
-vim.opt.scl = "yes" 
-
-vim.opt.matchpairs = "{:}"
 
 vim.opt.tabstop = 3
 vim.opt.softtabstop = 3
@@ -32,4 +29,5 @@ vim.opt.updatetime = 50
 vim.opt.showmode = false
 vim.opt.showcmd = false
 -- shutup
+vim.g.netrw_banner = 0
 vim.opt.report = 999999999

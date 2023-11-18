@@ -3,6 +3,14 @@ return {
       "Sam-programs/expand.nvim",
       dependencies = { 'Sam-Programs/indent.nvim' },
       event = 'InsertEnter',
-      opts = {}
+      opts = {
+         filetypes = {
+            cpp = {
+               { '\\w\\+ \\w\\+(.*)', {'<cr>{','}'} },
+               { '.*(.*)',            {'{','}'} },
+               { '',                  {'{','};'} },
+            }
+         }
+      }
    }
 }

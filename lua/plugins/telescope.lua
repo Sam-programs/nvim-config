@@ -5,6 +5,7 @@ return {
       dependencies = {
          { 'nvim-lua/plenary.nvim' },
          { 'nvim-tree/nvim-web-devicons' } }, -- optional
+      event = "VeryLazy",
       config = function()
          require('telescope').setup {
             defaults = {
@@ -22,16 +23,26 @@ return {
                   }
                },
                sorting_strategy = 'ascending',
+               mappings = {
+                  i = {
+                     ["<C-n>"] = "move_selection_next",
+                     ["<C-p>"] = "move_selection_previous",
+                     ["<C-i>"] = "select_default",
+                  },
+               }
             },
          }
-         vim.keymap.set('n', '<leader>pf', "<cmd>lua require(\'telescope.builtin\').find_files()<cr>")
-         vim.keymap.set('n', '<leader>pv', "<cmd>lua require(\'telescope.builtin\').git_files()<cr>")
-         vim.keymap.set('n', '<leader>ps', "<cmd>lua require(\'telescope.builtin\').live_grep()<cr.")
-         vim.keymap.set('n', '<leader>vh', "<cmd>lua require(\'telescope.builtin\').help_tags()<cr>")
-         vim.keymap.set('n', '<leader>rr', "<cmd>lua require(\'telescope.builtin\').lsp_references()<cr>")
-         vim.keymap.set('n', 'gd', "<cmd>lua require(\'telescope.builtin\').lsp_definitions()<cr>")
-         vim.keymap.set('n', '<leader>m',
-            "<cmd>lua require(\'telescope.builtin\').man_pages({ sections = { \"3\", \"2\", \"1\" } })<cr>")
+         vim.keymap.set('n', '<leader>pf', function()
+            require('telescope.builtin').find_files()
+         end)
+         vim.keymap.set('n', '<leader>pv', function() require('telescope.builtin').git_files() end)
+         vim.keymap.set('n', '<leader>ps', function() require('telescope.builtin').live_grep() end)
+         vim.keymap.set('n', '<leader>vh', function() require('telescope.builtin').help_tags() end)
+         vim.keymap.set('n', '<leader>rr', function() require('telescope.builtin').lsp_references() end)
+         vim.keymap.set('n', 'gd', function() require('telescope.builtin').lsp_definitions() end)
+         vim.keymap.set('n', '<leader>m', function()
+            require('telescope.builtin').man_pages({ sections = { "3", "2", "1" } })
+         end)
          vim.keymap.set('n', '<leader>e', "<cmd>lua require(\'telescope.builtin\').diagnostics()<cr>")
       end,
    },

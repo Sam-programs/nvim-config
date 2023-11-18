@@ -56,16 +56,13 @@ return {
             }
          end
 
-         local diagnosticsOn = true
-         local function InsertDiagnostics(fallback)
-            diagnosticsOn = not diagnosticsOn
-            vim.diagnostic.config({
-               update_in_insert = diagnosticsOn,
-            })
-         end
-
          cmp.setup({
-            enabled = true,
+            enabled = function()
+               if vim.o.ft == 'TelescopePrompt' then
+                  return
+               end
+               return true
+            end,
             mapping = cmp.mapping.preset.insert({
                ["<tab>"] = cmp.mapping(function(fallback)
                   if cmp.visible() then
@@ -81,10 +78,13 @@ return {
                   end
                   fallback()
                end),
-               ["<c-d>"] = cmp.mapping(InsertDiagnostics),
+
+               ["<c-e>"] = cmp.config.disable,
+               ["<c-d>"] = cmp.config.disable,
             }),
             sources = {
                { name = "nvim_lsp", group_index = 1 },
+               { name = "buffer", group_index = 2 },
                { name = "nvim_lua", group_index = 2 },
                { name = "path",     group_index = 2 },
             },
@@ -106,12 +106,12 @@ return {
             },
             experimental = {
                ghost_text = {
-                  hl_group = "CmpGhostText"
+                  hl_group = "CmpGhostText",
+                  inline_emulation = true,
                }
             },
             performance = cmp_performance,
          })
-
          local cmp_config = require('cmp.config')
          local cmp_comparetors = cmp_config.get().sorting.comparators
          local unpack = unpack or table.unpack
@@ -129,7 +129,6 @@ return {
             end
             return nil
          end
-         -- auto add semicolon
          -- i don't use nvim-autopairs and this is simple enough for me
          -- auto add pairs
          local function pair_on_confirm(event)
@@ -137,9 +136,9 @@ return {
             local item = entry:get_completion_item()
             local pairs = '()'
             local functionsig = item.label
-            local _, c = unpack(vim.api.nvim_win_get_cursor(0))
+            local c = vim.api.nvim_win_get_cursor(0)[2]
             local line = vim.api.nvim_get_current_line()
-            if line:sub(c, c) ~= ')' and
+            if line:sub(c + 1, c + 1) ~= '(' and
                 item.kind == kind.Function or item.kind == kind.Method then
                -- auto skip empty functions
                if functionsig:sub(#functionsig - 1, #functionsig) ~= pairs then
@@ -164,12 +163,13 @@ return {
             if is_function then
                return
             end
-            if line:sub(c, c) ~= '>' or
+            if line:sub(c, c) ~= '>' and
                 (vim.fn.match(functionsig, '<.*>') ~= -1 or
                    functionsig == ' template')
             then
                if functionsig:sub(2, 8) == 'include' then
-                  pairs = ' '
+                  vim.api.nvim_feedkeys(" ", "n", false)
+                  return
                end
                pairs = pairs .. '<>'
                local old_lz = vim.o.lz

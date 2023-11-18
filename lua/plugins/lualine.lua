@@ -7,14 +7,6 @@ return {{
       vim.cmd("set shortmess+=I")
       local lualine = require('lualine')
       local colors = {}
-      show_time = true
-      local function get_time()
-         if show_time then
-            return os.date("  %H:%M")
-         end
-         return '  ??:??'
-      end
-
       local theme = require('lualine.themes.' .. vim.g.colors_name)
       if eopts.lualine_no_mode_colors then
          theme = {
@@ -107,7 +99,7 @@ return {{
             symbols = { added = '+', modified = '󰦒', removed = '-' }, -- Changes the symbols used by the diff.
          } },
          lualine_y = { 'location' },
-         lualine_z = { { get_time } }
+         lualine_z = { },
       }
 
       lualine.setup {
