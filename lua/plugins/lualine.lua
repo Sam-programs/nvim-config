@@ -1,5 +1,5 @@
-return {{
-   'nvim-lualine/lualine.nvim',
+return { {
+   'Sam-programs/lualine.nvim',
    dependencies = { 'nvim-tree/nvim-web-devicons' }, --optional
    event = 'VimEnter',
    config = function()
@@ -19,6 +19,58 @@ return {{
             inactive = theme.inactive,
          }
       end
+      function get_pos()
+         if vim.bo[0].buftype ~= "" then
+            return ""
+         end
+         local r, c = unpack(vim.api.nvim_win_get_cursor(0))
+         return string.format("ln:%d,c:%d", r, c)
+      end
+
+      -- i tried to standardize mode lengths as much as possible
+      local mode_table = {
+         ["n"]   = "NORMAL",
+         ["no"]  = "O-Pend",
+         ["nov"] = "C-Pend",
+         ["noV"] = "L-Pend",
+         ["no"] = "B-Pend",
+
+         ["i"]   = "INSERT",
+         ["ic"]  = "INSERT",
+         ["ix"]  = "INSERT",
+         ["niI"] = "INSERT",
+
+         ["v"]   = "VISUAL",
+         ["vs"]  = "VISUAL",
+         ["niV"] = "VISUAL",
+
+         [""]   = "VBLOCK",
+         ["s"]  = "VBLOCK",
+
+         ["V"]   = "V-LINE",
+         ["Vs"]  = "V-LINE",
+
+         -- no real good way to shrink this
+         ["R"]   = "REPLACE",
+         ["Rc"]  = "REPLACE",
+         ["Rx"]  = "REPLACE",
+         ["Rv"]  = "REPLACE",
+         ["Rvc"] = "REPLACE",
+         ["Rvx"] = "REPLACE",
+         ["niR"] = "REPLACE",
+
+         ["c"]   = "NORMAL",
+         ["CV"]  = "ExMode",
+         ["r"]   = "NORMAL",
+         ["rm"]  = "NORMAL",
+         ["!"]   = "NORMAL",
+         ["r?"]  = "NORMAL",
+
+         ["t"]   = "TERM",
+         ["nt"]  = "MOVE",
+         ["ntT"] = "TERM",
+      }
+
       -- while i was looking for a good indentation character for listchars
       -- i got distracted with these cute icons
       -- use a nerd font for these
@@ -30,9 +82,37 @@ return {{
          '', '󱥐', '', '', '', '', '󰋸', '',
          '󰔉', '', '',
       }
-
       math.randomseed(os.time())
+      local function esc(str)
+         return vim.api.nvim_replace_termcodes(str, true, false, true)
+      end
+      local autocmd = vim.api.nvim_create_autocmd
+
+      local last_mode = "NORMAL"
+      local actual_win = nil 
+      autocmd({ "WinNew","WinEnter" }, {
+         pattern = { "*" },
+         callback = function(ev)
+            actual_win = vim.api.nvim_get_current_win()
+         end
+      })
+
       local mode_icon = mode_icons[math.random(#mode_icons)] .. ' '
+      function get_mode()
+         local cur = vim.api.nvim_get_current_win()
+         if actual_win and cur ~= actual_win then
+            return ''
+         end
+         local mode_dict = vim.api.nvim_get_mode()
+         local mode = mode_dict.mode
+         mode = mode_icon .. mode_table[mode]
+         -- if we are in a mapping don't react to mode changes
+         if vim.fn.getchar(1) ~= 0 then
+            return last_mode
+         end
+         last_mode = mode
+         return mode
+      end
 
       vim.api.nvim_create_autocmd({ "WinEnter" }, {
          pattern = "*",
@@ -45,9 +125,11 @@ return {{
 
       local config = {
          lualine_a = {
-            { 'mode', fmt = function(str) return mode_icon .. str end }
+            get_mode,
          },
-         lualine_b = { { 'branch', icon = '' } },
+         lualine_b = {
+            'searchcount'
+         },
          lualine_c = { {
             "filetype",
             colored = true,
@@ -64,7 +146,7 @@ return {{
             padding = 0,           -- For the icon
             file_status = true,    -- Displays file status (readonly status, modified status)
             newfile_status = true, -- Display new file status (new file means no write after created)
-            path = 0,              -- 0: Just the filename
+            path = 4,              -- 0: Just the filename
             -- 1: Relative path
             -- 2: Absolute path
             -- 3: Absolute path, with tilde as the home directory
@@ -98,8 +180,10 @@ return {{
             },
             symbols = { added = '+', modified = '󰦒', removed = '-' }, -- Changes the symbols used by the diff.
          } },
-         lualine_y = { 'location' },
-         lualine_z = { },
+         lualine_y = {
+            { 'branch', icon = '' },
+         },
+         lualine_z = { get_pos },
       }
 
       lualine.setup {
@@ -155,4 +239,4 @@ return {{
          },
       }
    end,
-}}
+} }

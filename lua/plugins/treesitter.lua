@@ -13,6 +13,7 @@ return {
                enable = true
             },
          })
+
          vim.api.nvim_create_autocmd('BufRead', {
             pattern = '*.c*',
             callback = function()

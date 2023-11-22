@@ -23,14 +23,20 @@ return {
          }
          require('tokyonight').setup(opts)
          vim.cmd [[ colorscheme tokyonight]]
+         -- voidy night
+         -- this looks good with tokyonight
          local bg = "#21232a"
-         -- this looks epci with tokyonight
-         vim.api.nvim_set_hl(0, "Normal", { bg = bg })
-         vim.api.nvim_set_hl(0, "NormalFloat", { bg = bg })
+         local normal = vim.api.nvim_get_hl(0, {name = "Normal"})
+         normal.bg = bg
+         vim.api.nvim_set_hl(0, "Normal",normal)
 
-         vim.api.nvim_set_hl(0, "CursorLine", {})
-         -- this makes it so that only the number on the left is highlighted
-         vim.o.cul = true
+         local normalSB = vim.api.nvim_get_hl(0, {name = "NormalSB"})
+         normalSB.bg = nil
+         normalSB = {
+            fg = "#7aa2f7",
+         }
+         vim.api.nvim_set_hl(0, "WinSeparator", normalSB)
+         vim.o.fillchars = 'vert:▕'
 
          vim.api.nvim_set_hl(0,"@lsp.type.macro.cpp",{})
       end,

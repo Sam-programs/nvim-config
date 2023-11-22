@@ -18,7 +18,6 @@ autocmd({ "BufWritePre" }, {
    end
 })
 
-
 local do_not_cmake = false
 local command = vim.api.nvim_create_user_command
 command("TCmake", function()
@@ -75,11 +74,10 @@ autocmd({ "BufEnter", "TermOpen" }, {
    pattern = "term://*",
    callback = function()
       vim.cmd("startinsert")
-      if vim.o.nu then
-         vim.wo[0].nu = false
-         vim.wo[0].rnu = false
-         vim.wo[0].scl = "no"
-         vim.api.nvim_win_set_width(0, 50)
-      end
+      vim.wo[0].nu = false
+      vim.wo[0].rnu = false
+      vim.wo[0].scl = "no"
+      -- 48 leaves 80 coulmns for code
+      vim.api.nvim_win_set_width(0, 48)
    end,
 })

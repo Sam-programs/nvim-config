@@ -1,6 +1,6 @@
 vim.opt.guicursor = ""
 
-vim.opt.nu = true
+vim.opt.nu = false
 vim.opt.rnu = true
 
 vim.opt.tabstop = 3
@@ -17,7 +17,7 @@ vim.opt.undodir = os.getenv("HOME") .. "/.config/nvim/undo_history/"
 vim.opt.undofile = true
 vim.opt.undolevels = 10000
 
-vim.opt.hlsearch = false
+vim.opt.hlsearch = true
 vim.opt.incsearch = true
 vim.opt.termguicolors = true
 

@@ -2,10 +2,9 @@ vim.g.mapleader = " "
 local keymap = vim.keymap.set
 
 keymap('t', '<Esc>', '<C-\\><C-n>')
-keymap('t', '<C-w>', '<Esc><C-w>', { remap = true })
 
 --very shmooth line movement
-keymap("v", "<C-j>", function()
+keymap("v", "J", function()
    local selbegin = vim.fn.getpos('v')[2]
    local selend = vim.fn.getpos('.')[2]
    local bufsize = vim.api.nvim_buf_line_count(0)
@@ -18,7 +17,7 @@ keymap("v", "<C-j>", function()
    return "<ESC><CMD>'<,'>m '>+1<CR>gv=gv<cmd>lua vim.o.lz =  " .. (old_lz and "true" or "false") .. "<cr>"
 end, { expr = true, remap = true, silent = true })
 
-keymap("v", "<C-k>", function()
+keymap("v", "K", function()
    local selend = vim.fn.getpos(".")[2]
    local selbegin = vim.fn.getpos("v")[2]
    if selbegin == 1 or selend == 1 then
@@ -30,12 +29,8 @@ keymap("v", "<C-k>", function()
    return "<ESC><CMD>'<,'>m '<-2<CR>gv=gv<cmd>lua vim.o.lz =  " .. (old_lz and "true" or "false") .. "<cr>"
 end, { expr = true, remap = true, silent = true })
 
-keymap("n", "<C-j>", "v<C-j>", { remap = true })
-keymap("n", "<C-k>", "v<C-k>", { remap = true })
-
-keymap({ "n", "v" }, "J", "<C-d>zz")
-keymap({ "n", "v" }, "K", "<C-u>zz")
-
+keymap("n", "J", "vJ<esc>", { remap = true })
+keymap("n", "K", "vK<esc>", { remap = true })
 
 -- shift K by default goes to help/man page
 keymap({ "n", "v" }, "M", "K")
@@ -64,30 +59,48 @@ keymap("n", "<leader>q", function()
 end)
 
 -- save to the system clipboard
-keymap("n", "p", "\"+P")
 keymap("n", "y", "\"+y")
 keymap("v", "y", "\"+y")
 
-keymap("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/<Left>]])
-keymap("n", "<leader>g", [[:%s/<C-r><C-w>/<C-r><C-w>/<Left>]])
+keymap("n", "p", "\"+P")
 
-keymap("n", "<A-l>", "<cmd>tabnext<CR>")
-keymap("n", "<A-h>", "<cmd>tabprev<CR>")
-keymap("n", "<A-1>", "1gt")
-keymap("n", "<A-2>", "2gt")
-keymap("n", "<A-3>", "3gt")
-keymap("n", "<A-4>", "4gt")
-keymap("n", "<A-5>", "5gt")
-keymap("n", "<A-6>", "6gt")
-keymap("n", "<A-7>", "7gt")
-keymap("n", "<A-8>", "8gt")
-keymap("n", "<A-t>", ":tabe ")
+-- tab movement
+
+keymap({ "n", "t" }, "<A-h>", "<cmd>tabprev<CR>")
+keymap({ "n", "t" }, "<A-l>", "<cmd>tabnext<CR>")
+
+keymap({ "n", "t", "i" }, "<A-L>", function()
+   vim.cmd [[ silent! +tabmove ]]
+   require('lualine').refresh({
+      scope = 'tabpage',     -- scope of refresh all/tabpage/window
+      place = { 'tabline' }, -- lualine segment ro refresh.
+   })
+end)
+
+keymap({ "n", "t", "i" }, "<A-H>", function()
+   vim.cmd [[ silent! -tabmove ]]
+   require('lualine').refresh({
+      scope = 'tabpage',     -- scope of refresh all/tabpage/window
+      place = { 'tabline' }, -- lualine segment ro refresh.
+   })
+end)
+
+keymap({ "n", "t", "i" }, "<A-1>", "1gt")
+keymap({ "n", "t", "i" }, "<A-2>", "2gt")
+keymap({ "n", "t", "i" }, "<A-3>", "3gt")
+keymap({ "n", "t", "i" }, "<A-4>", "4gt")
+keymap({ "n", "t", "i" }, "<A-5>", "5gt")
+keymap({ "n", "t", "i" }, "<A-6>", "6gt")
+keymap({ "n", "t", "i" }, "<A-7>", "7gt")
+keymap({ "n", "t", "i" }, "<A-8>", "8gt")
+keymap({ "n", "t", "i" }, "<A-9>", "9gt")
+keymap({ "n", "t", "i" }, "<A-t>", ":tabe ")
 
 keymap("n", "<C-a>", "ggVG")
 keymap("v", "<C-a>", "<ESC>ggVG")
 
-keymap("n", "<C-s>", "<cmd>echo \"saved session\"<cr><CMD>mksession! lastsession.vim<CR>")
-keymap("n", "<C-l>", "<CMD>source lastsession.vim<CR><cmd>echo \"loaded session\"<cr>")
+keymap("n", "<A-space>", "<cmd>echo \"saved session\"<cr><CMD>mksession! lastsession.vim<CR>")
+keymap("n", "<C-space>", "<CMD>source lastsession.vim<CR><cmd>echo \"loaded session\"<cr><esc>")
 
 -- got this idea from fuadsaud on github
 keymap({ "o", "n", "v" }, "L", "$")
@@ -121,10 +134,10 @@ local function get_hl(r, pos)
    if #lsp_hls ~= 0 then
       local hl
       local priority = 0
-      for _,lsp_hl in pairs(lsp_hls)  do
+      for _, lsp_hl in pairs(lsp_hls) do
          local opts = lsp_hl.opts
          if priority < opts.priority and
-            not hl_iscleared(opts.hl_group_link)
+             not hl_iscleared(opts.hl_group_link)
          then
             hl = opts.hl_group_link
             priority = opts.priority
@@ -136,7 +149,7 @@ local function get_hl(r, pos)
    end
    local ts_hls = result.treesitter
    if #ts_hls ~= 0 then
-      for i = #ts_hls,1,-1 do
+      for i = #ts_hls, 1, -1 do
          if not hl_iscleared(ts_hls[i].hl_group_link) then
             return ts_hls[i].hl_group_link
          end
@@ -149,28 +162,21 @@ local function get_hl(r, pos)
    return "Normal"
 end
 
-
-
-
-
-
-
-
 local buf = -1
 keymap('i', '<C-q>', function()
-   local r,c = unpack(vim.api.nvim_win_get_cursor(0))
+   local r, c = unpack(vim.api.nvim_win_get_cursor(0))
    r = r - 1
    local hls = {}
    local line = vim.api.nvim_get_current_line()
    for i = c, #line, 1 do
-      local result = vim.inspect_pos(0,r,i - 1,{})
+      local result = vim.inspect_pos(0, r, i - 1, {})
       local syntax_hls = result.syntax
       if #syntax_hls ~= 0 then
-         table.insert(hls,syntax_hls[#syntax_hls].hl_group_link)
+         table.insert(hls, syntax_hls[#syntax_hls].hl_group_link)
       end
    end
    vim.print(hls)
-end,{expr = true})
+end, { expr = true })
 
 keymap({ 'n', 'v', 'c' }, '<M-CR>', 'gx');
 -- macros are annoying
@@ -184,7 +190,9 @@ if DEBUG_BUFER == nil then
 end
 
 keymap('n', '<A-d>', function()
+   vim.cmd('normal ' .. esc('<C-v><C-l><cmd>e m<cr>'))
    DEBUG_BUFER = vim.api.nvim_get_current_buf()
+   vim.cmd('normal ' .. esc('<C-h>'))
 end)
 
 -- - 5 hours + 0 progress should have went to neovim's c code rather than trying to make work arounds
@@ -199,7 +207,12 @@ function clear()
    vim.api.nvim_buf_set_lines(DEBUG_BUFER, 0, -1, false, {})
 end
 
+last_data = "None"
 function log(data)
+   last_data = data
+   if DEBUG_BUFER == -1 then
+      return
+   end
    if type(data) == 'string' then
       data = vim.split(data, '\n')
       vim.api.nvim_buf_set_lines(DEBUG_BUFER, -2, -2, false, data)
@@ -219,53 +232,23 @@ keymap('i', '<C-d>', function()
    })
 end)
 
-if false then
-   -- highlight links when on the cursor
-   -- made while learning Extmarks
+-- window shortcuts
+keymap({ 't', 'i', 'n' }, "<C-l>", "<esc><C-w>l", { remap = true })
+keymap({ 't', 'i', 'n' }, "<C-h>", "<esc><C-w>h", { remap = true })
+keymap({ 't', 'i', 'n' }, "<C-j>", "<esc><C-w>j", { remap = true })
+keymap({ 't', 'i', 'n' }, "<C-k>", "<esc><C-w>k", { remap = true })
+keymap({ 't', 'i', 'n' }, "<C-q>", "<esc><C-w>q", { remap = true })
+-- ctrl-v in insert mode places keys letteraly
+keymap({ 't', 'n' }, "<C-v>", "<esc><C-w>v", { remap = true })
 
-   local https_ns = vim.api.nvim_create_namespace('https_links')
-   vim.api.nvim_set_hl(0, "https_underline", { bold = true })
-   local link = nil
+keymap('c', "<C-q>", "<cmd>redraw!<cr>")
+keymap('c', "<C-a>", "<cmd>redraw<cr>")
+ns = vim.api.nvim_create_namespace('cmdline_testing')
 
-   vim.api.nvim_create_autocmd({ "InsertEnter" }, {
-      pattern = "*",
-      callback = function()
-         if id then
-            vim.api.nvim_buf_del_extmark(0, https_ns, id)
-         end
+vim.api.nvim_set_decoration_provider(ns, {
+   on_win = function(_,win,...)
+      if win == vim.api.nvim_get_current_win() then
       end
-   })
-
-   local not_link_pat = '\\S'
-   vim.api.nvim_create_autocmd({ "CursorMoved" }, {
-      pattern = "*",
-      callback = function()
-         local r, c = unpack(vim.api.nvim_win_get_cursor(0))
-         local line = vim.api.nvim_get_current_line()
-         r = r - 1
-         local index = 1
-         for i = c + 1, 1, -1 do
-            if vim.fn.matchstr(line:sub(i, i), not_link_pat) == "" then
-               index = i + 1
-               break;
-            end
-         end
-         line = line:sub(index)
-         index = index - 1
-         link = vim.fn.matchstr(line, '\\M^https://' .. not_link_pat .. '\\*')
-         if link ~= "" then
-            id = vim.api.nvim_buf_set_extmark(0, https_ns, r, index, {
-               id = id,
-               end_col = #link + index,
-               hl_group = "https_underline",
-               hl_mode = "replace",
-            })
-         else
-            if id then
-               vim.api.nvim_buf_del_extmark(0, https_ns, id)
-            end
-         end
-      end,
-   })
-   -- https://google.com   foo boo https://youtube.com
-end
+      return false
+   end
+})

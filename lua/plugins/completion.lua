@@ -15,7 +15,7 @@ return {
          { 'hrsh7th/cmp-nvim-lua' },
          { 'hrsh7th/cmp-nvim-lsp' },
       },
-      event = 'InsertEnter',
+      event = 'VeryLazy',
       config = function()
          local cmp = require('cmp')
          local cmp_win = require('cmp.utils.window')
@@ -52,7 +52,7 @@ return {
                debounce                = 0,
                fetching_timeout        = 0,
                -- useful for S-Tab
-               max_view_entries        = 10,
+               max_view_entries        = 50,
             }
          end
 
