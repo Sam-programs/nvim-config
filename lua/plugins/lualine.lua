@@ -122,13 +122,11 @@ return { {
          end,
          once = false,
       })
-
       local config = {
          lualine_a = {
             get_mode,
          },
          lualine_b = {
-            'searchcount'
          },
          lualine_c = { {
             "filetype",

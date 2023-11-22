@@ -1,14 +1,16 @@
--- TODO: simplify the redrawing logic
-cmdbuf = vim.api.nvim_create_buf(false, true)
-emptybuf = vim.api.nvim_create_buf(false, true)
-
+local cmdbuf = vim.api.nvim_create_buf(false, true)
+local emptybuf = vim.api.nvim_create_buf(false, true)
+vim.bo[cmdbuf].buftype = 'nowrite'
+vim.bo[emptybuf].buftype = 'nowrite'
+local win = 0
+local cusor_mark = nil
 vim.o.wildmode = ""
 
 local row = function(_, _, _)
    return -3
 end
 
-local col = function(type, content, prompt)
+local col = function(type, content, _)
    local col = 0
    if type == '/' or type == '?' then
       col = - #content - 3
@@ -60,7 +62,7 @@ local function esc(str)
    return vim.api.nvim_replace_termcodes(str, true, false, true)
 end
 
-function open()
+local function open()
    win =
        vim.api.nvim_open_win(emptybuf, false, {
           relative = 'editor',
@@ -82,31 +84,16 @@ open()
 vim.api.nvim_create_autocmd("TabEnter", {
    pattern = "*",
    callback = function()
-      vim.api.nvim_win_hide(win)
+      if vim.api.nvim_win_is_valid(win) then
+         vim.api.nvim_win_hide(win)
+      end
       open()
    end
 })
 
-local t = ""
-local d = ""
-local p = ""
-
-function update_pos()
-   vim.api.nvim_win_set_config(win, {
-      relative = relative(),
-      row = row(t, d, p),
-      col = col(t, d, p),
-      width = width(t, d, p),
-      height = height(t, d),
-      title = title_pos(t, d, p),
-      title_pos = title_pos(t, d, p),
-      zindex = 1000,
-   })
-end
-
 vim.api.nvim_create_autocmd({ "WinEnter" }, {
    pattern = "*",
-   callback = function(ev)
+   callback = function()
       if vim.api.nvim_get_current_win() == win then
          vim.cmd('normal! ' .. esc('<C-w><C-w>'))
          return
@@ -125,8 +112,9 @@ vim.fn.sign_define('CmdLine', { text = " ", texthl = "FloatBorder" })
 vim.fn.sign_define('Search', { text = " ", texthl = "FloatBorder" })
 vim.fn.sign_define('Calculator', { text = " ", texthl = "FloatBorder" })
 local ts_started = false
-
-local cmdlinens = vim.api.nvim_create_namespace('cmdline')
+local old_data = ""
+local old_pos = 0
+local cmdline_ns = vim.api.nvim_create_namespace('cmdline')
 vim.api.nvim_set_hl(0, 'HIDDEN', { blend = 100, nocombine = true })
 local call_c = 0
 local handler = {
@@ -144,32 +132,43 @@ local handler = {
          title = '',
          zindex = 1,
       })
-      vim.go.guicursor = "a:Cursor"
+      vim.go.guicursor = "a:block"
       vim.wo[win].winblend = 100
-      vim.o.ei = old_ei
 
       call_c = 0
-      r_call = 0
       if ts_started then
          vim.treesitter.stop(cmdbuf)
          ts_started = false
       end
+      vim.o.ei = old_ei
    end,
-   ["cmdline_pos"] = function(pos, level)
+   ["cmdline_pos"] = function(pos,_)
       if pos == old_pos then
          return
       end
-      cid = vim.api.nvim_buf_set_extmark(cmdbuf, cmdlinens, 0, pos + #p, {
-         id = cid,
-         end_col = pos + #p + 1,
+      old_pos = pos
+      cusor_mark = vim.api.nvim_buf_set_extmark(cmdbuf, cmdline_ns, 0, pos, {
+         id = cusor_mark,
+         end_col = pos + 1,
          hl_group = "Cursor",
       })
-      old_pos = pos
-      vim.schedule(function()
-         vim.api.nvim_input(' <bs>')
-      end)
+      local type = vim.fn.getcmdtype()
+      if type == '/' or type == '?' then
+         -- we can't redraw normally because hlsearch gets rendered as the last hlsearch for some reason
+         vim.schedule(function()
+            vim.api.nvim_input(' <bs>')
+         end)
+      else
+         vim.schedule(function()
+            vim.cmd [[ redraw ]]
+         end)
+      end
    end,
    ["cmdline_show"] = function(content, pos, type, prompt, _, _)
+      -- tressiter context hates nvim_win_set_buf
+      -- couldn't figure out why even tho i set the file type to prompt
+      local old_ei = vim.o.eventignore
+      vim.o.ei = 'all'
       -- hack taken from noice
       vim.go.guicursor = "a:HIDDEN"
       vim.wo[win].winblend = 0
@@ -185,36 +184,42 @@ local handler = {
       else
          vim.wo[win].scl = "no"
       end
-      -- the space is for the cursor extmark
+
+      -- the space is for the cursor mark
       vim.api.nvim_buf_set_lines(cmdbuf, 0, -1, false, { data .. ' ' })
-      -- cursor extmark
-      cid = vim.api.nvim_buf_set_extmark(cmdbuf, cmdlinens, 0, pos, {
-         id = cid,
+      cusor_mark = vim.api.nvim_buf_set_extmark(cmdbuf, cmdline_ns, 0, pos, {
+         id = cusor_mark,
          end_col = pos + 1,
          hl_group = "Cursor",
       })
-      if type ~= "" then
-         if not ts_started then
-            if type == ":" or type == "=" then
-               vim.treesitter.start(cmdbuf, 'vim')
-               ts_started = true
-            end
+
+      if not ts_started then
+         if type == ":" or type == "=" then
+            vim.treesitter.start(cmdbuf, 'vim')
+            ts_started = true
          end
       end
-      --- save info for update_pos
-      t = type
-      d = data
-      p = prompt
+
       if call_c == 1 then
          vim.api.nvim_win_set_buf(win, cmdbuf)
       end
+
+      vim.o.ei = old_ei
       -- the first redraw renders the window and triggers cmdline_show again
       -- then we need another redraw to render the icon
       -- then finally we get an extra call from the icon redraw
-      if (type == '/' or type == '?') and call_c > 3 then
-         return
+      if call_c >= 3 then
+         -- search modes don't need redrawing besides for cursor movement because they automatically redraw
+         if (type == '/' or type == '?') then
+            return
+         end
+         -- we get called again from a redraw
+         if (old_data == data) then
+            return
+         end
       end
-
+      old_data = data
+      vim.o.ei = 'all'
       vim.api.nvim_win_set_config(win, {
          relative = relative(),
          row = row(type, data, prompt),
@@ -226,23 +231,15 @@ local handler = {
          title_pos = title_pos(type, data, prompt),
          zindex = 1000,
       })
-      -- see the if statement above to why we need call_c less than 3
-      if (old_data == data) and call_c > 3 then
-         return
-      end
-      old_data = data
       vim.schedule(function()
          vim.cmd([[ redraw ]])
+         vim.o.ei = old_ei
       end)
    end,
 }
 
-vim.ui_attach(cmdlinens,
-   {
-      ext_cmdline = true,
-   },
+vim.ui_attach(cmdline_ns, { ext_cmdline = true, },
    function(name, ...)
-      log(name .. "")
       handler[name](...)
    end
 )

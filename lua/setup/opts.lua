@@ -17,7 +17,7 @@ vim.opt.undodir = os.getenv("HOME") .. "/.config/nvim/undo_history/"
 vim.opt.undofile = true
 vim.opt.undolevels = 10000
 
-vim.opt.hlsearch = true
+vim.opt.hlsearch = false
 vim.opt.incsearch = true
 vim.opt.termguicolors = true
 
