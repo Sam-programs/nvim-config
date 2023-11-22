@@ -243,6 +243,12 @@ keymap({ 't', 'n' }, "<C-v>", "<esc><C-w>v", { remap = true })
 
 keymap('c', "<C-q>", "<cmd>redraw!<cr>")
 keymap('c', "<C-a>", "<cmd>redraw<cr>")
+keymap('n', "<C-a>",function()
+   vim.notify(vim.wo[win].winhl .. "blend:" ..  
+      vim.wo[win].winblend
+   )
+end)
+
 ns = vim.api.nvim_create_namespace('cmdline_testing')
 
 vim.api.nvim_set_decoration_provider(ns, {

@@ -2,25 +2,27 @@
 cmdbuf = vim.api.nvim_create_buf(false, true)
 emptybuf = vim.api.nvim_create_buf(false, true)
 
-
 vim.o.wildmode = ""
 
-local row = function(_, content, prompt)
+local row = function(_, _, _)
    return -3
 end
 
-local last_col = 0
 local col = function(type, content, prompt)
    local col = 0
    if type == '/' or type == '?' then
       col = - #content - 3
    else
-      col = -3 - #prompt
+      if type ~= "" then
+         col = -3
+      else
+         col = -1 - #content
+      end
    end
    return col
 end
 
-local width = function(_, content, prompt)
+local width = function(_, content, _)
    if #content < 25 then
       return 30
    end
@@ -40,14 +42,14 @@ local title_map = {
    ["="] = "Calculator",
 }
 
-local title = function(type, content, prompt)
+local title = function(type, _, prompt)
    if prompt ~= "" then
-      return " "
+      return prompt
    end
    return title_map[type]
 end
 
-local title_pos = function(type, content, prompt)
+local title_pos = function(_, _, prompt)
    if prompt ~= "" then
       return "center"
    end
@@ -67,6 +69,7 @@ function open()
           width = 1,
           height = 1,
           noautocmd = true,
+          zindex = 1000,
        })
    -- HACK: hide hlsearch
    vim.wo[win].winhl = "Normal:NormalFloat,Border:FloatBorder,CurSearch:HIDDEN,Search:HIDDEN"
@@ -89,36 +92,18 @@ local d = ""
 local p = ""
 
 function update_pos()
-   if not in_cmd then
-      return
-   end
-   log('update')
    vim.api.nvim_win_set_config(win, {
       relative = relative(),
       row = row(t, d, p),
       col = col(t, d, p),
       width = width(t, d, p),
       height = height(t, d),
+      title = title_pos(t, d, p),
+      title_pos = title_pos(t, d, p),
+      zindex = 1000,
    })
 end
 
-vim.api.nvim_create_autocmd("CmdLineChanged", {
-   pattern = "*",
-   callback = function()
-      vim.api.nvim_win_set_config(win, {
-         relative = relative(),
-         row = row(t, d, p),
-         col = col(t, d, p),
-         width = width(t, d, p),
-         height = height(t, d),
-         border = "rounded",
-         title = title(type, d, p),
-      })
-      vim.cmd.redraw()
-   end
-})
-
-local last_win = vim.api.nvim_get_current_win()
 vim.api.nvim_create_autocmd({ "WinEnter" }, {
    pattern = "*",
    callback = function(ev)
@@ -139,15 +124,15 @@ local type_sign = {
 vim.fn.sign_define('CmdLine', { text = " ", texthl = "FloatBorder" })
 vim.fn.sign_define('Search', { text = " ", texthl = "FloatBorder" })
 vim.fn.sign_define('Calculator', { text = " ", texthl = "FloatBorder" })
+local ts_started = false
 
-
-local redrawing = false
 local cmdlinens = vim.api.nvim_create_namespace('cmdline')
 vim.api.nvim_set_hl(0, 'HIDDEN', { blend = 100, nocombine = true })
 local call_c = 0
 local handler = {
    ["cmdline_hide"] = function()
-      vim.wo[win].winblend = 100
+      local old_ei = vim.o.ei
+      vim.o.ei = 'all'
       vim.api.nvim_win_set_buf(win, emptybuf)
       vim.api.nvim_win_set_config(win, {
          relative = 'editor',
@@ -157,82 +142,79 @@ local handler = {
          height = 1,
          border = 'none',
          title = '',
-         title_pos = "left",
+         zindex = 1,
       })
       vim.go.guicursor = "a:Cursor"
+      vim.wo[win].winblend = 100
+      vim.o.ei = old_ei
+
       call_c = 0
-      in_cmd = false
+      r_call = 0
+      if ts_started then
+         vim.treesitter.stop(cmdbuf)
+         ts_started = false
+      end
    end,
    ["cmdline_pos"] = function(pos, level)
-      in_cmd = true
+      if pos == old_pos then
+         return
+      end
       cid = vim.api.nvim_buf_set_extmark(cmdbuf, cmdlinens, 0, pos + #p, {
          id = cid,
          end_col = pos + #p + 1,
          hl_group = "Cursor",
       })
-      if redrawing then
-         return
-      end
-      redrawing = true
+      old_pos = pos
       vim.schedule(function()
-         vim.cmd([[ redraw ]])
-         redrawing = false
+         vim.api.nvim_input(' <bs>')
       end)
    end,
    ["cmdline_show"] = function(content, pos, type, prompt, _, _)
       -- hack taken from noice
       vim.go.guicursor = "a:HIDDEN"
+      vim.wo[win].winblend = 0
+      call_c = call_c + 1
       local data = ""
       for i = 1, #content, 1 do
          data = data .. content[i][2]
       end
 
-      local prefix = ""
       if prompt == "" then
          vim.fn.sign_place(0, "", type_sign[type] or "CmdLine", cmdbuf, { lnum = 1 })
          vim.wo[win].scl = "yes"
       else
          vim.wo[win].scl = "no"
-         prefix = prompt
       end
-      -- the space is for the extmark
-      vim.api.nvim_buf_set_lines(cmdbuf, 0, -1, false, { prefix .. data .. ' ' })
-      cid = vim.api.nvim_buf_set_extmark(cmdbuf, cmdlinens, 0, pos + #prefix, {
+      -- the space is for the cursor extmark
+      vim.api.nvim_buf_set_lines(cmdbuf, 0, -1, false, { data .. ' ' })
+      -- cursor extmark
+      cid = vim.api.nvim_buf_set_extmark(cmdbuf, cmdlinens, 0, pos, {
          id = cid,
-         end_col = pos + #prefix + 1,
+         end_col = pos + 1,
          hl_group = "Cursor",
-      })
-      vim.api.nvim_win_set_buf(win, cmdbuf)
-      t = type
-      d = data
-      p = prompt
-      pid = vim.api.nvim_buf_set_extmark(cmdbuf, cmdlinens, 0, 0, {
-         id = pid,
-         end_col = #prefix,
-         hl_group = "FloatBorder",
       })
       if type ~= "" then
          if not ts_started then
-            vim.treesitter.start(cmdbuf, 'vim')
-            ts_started = true
-            if pid then
-               vim.api.nvim_buf_del_extmark(pid)
-               pid = false
+            if type == ":" or type == "=" then
+               vim.treesitter.start(cmdbuf, 'vim')
+               ts_started = true
             end
          end
-      else
-         if ts_started then
-            vim.treesitter.stop(cmdbuf, 'vim')
-            ts_started = false
-         end
       end
-      -- 2 calls are enought to load the sign
-      -- use set decortor to fix hlsearch
-      call_c = call_c + 1
-      -- search gets updates with the window decortor very hacky 
-      if (type == '/' or type == '?') and call_c >= 3 then
+      --- save info for update_pos
+      t = type
+      d = data
+      p = prompt
+      if call_c == 1 then
+         vim.api.nvim_win_set_buf(win, cmdbuf)
+      end
+      -- the first redraw renders the window and triggers cmdline_show again
+      -- then we need another redraw to render the icon
+      -- then finally we get an extra call from the icon redraw
+      if (type == '/' or type == '?') and call_c > 3 then
          return
       end
+
       vim.api.nvim_win_set_config(win, {
          relative = relative(),
          row = row(type, data, prompt),
@@ -242,51 +224,25 @@ local handler = {
          border = "rounded",
          title = title(type, data, prompt),
          title_pos = title_pos(type, data, prompt),
+         zindex = 1000,
       })
-      if redrawing then
+      -- see the if statement above to why we need call_c less than 3
+      if (old_data == data) and call_c > 3 then
          return
       end
-      redrawing = true
+      old_data = data
       vim.schedule(function()
-         vim.wo[win].winblend = 0
-         vim.cmd([[ redraw! ]])
-         redrawing = false
+         vim.cmd([[ redraw ]])
       end)
    end,
 }
-
-local call_w = 0
-vim.api.nvim_set_decoration_provider(cmdlinens, {
-   on_win = function(_, rwin, ...)
-      if rwin == win then
-         if vim.fn.mode() ~= 'c' then
-            call_w = 0
-            return false
-         end
-         -- infite loop with : debug later
-         if vim.fn.getcmdtype() ~= '/' and vim.fn.getcmdtype() ~= '?' then
-            return
-         end
-         if call_c == call_w then
-            return false
-         end
-         call_w = call_c
-         vim.schedule(function()
-            update_pos()
-            vim.cmd.redraw()
-         end
-         )
-      end
-      return false
-   end
-})
-
 
 vim.ui_attach(cmdlinens,
    {
       ext_cmdline = true,
    },
    function(name, ...)
+      log(name .. "")
       handler[name](...)
    end
 )
