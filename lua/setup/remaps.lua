@@ -2,6 +2,7 @@ vim.g.mapleader = " "
 local keymap = vim.keymap.set
 
 keymap('t', '<Esc>', '<C-\\><C-n>')
+keymap('t', '<C-w>', '<C-\\><C-n><C-w>')
 
 --very shmooth line movement
 keymap("v", "J", function()
@@ -126,43 +127,6 @@ local function esc(str)
    return vim.api.nvim_replace_termcodes(str, true, false, true)
 end
 
-
-local function get_hl(r, pos)
-   pos = pos - 1
-   local result = vim.inspect_pos(0, r, pos)
-   local lsp_hls = result.semantic_tokens
-   if #lsp_hls ~= 0 then
-      local hl
-      local priority = 0
-      for _, lsp_hl in pairs(lsp_hls) do
-         local opts = lsp_hl.opts
-         if priority < opts.priority and
-             not hl_iscleared(opts.hl_group_link)
-         then
-            hl = opts.hl_group_link
-            priority = opts.priority
-         end
-      end
-      if hl then
-         return hl
-      end
-   end
-   local ts_hls = result.treesitter
-   if #ts_hls ~= 0 then
-      for i = #ts_hls, 1, -1 do
-         if not hl_iscleared(ts_hls[i].hl_group_link) then
-            return ts_hls[i].hl_group_link
-         end
-      end
-   end
-   local syntax_hls = result.syntax
-   if #syntax_hls ~= 0 then
-      return syntax_hls[#syntax_hls].hl_group_link
-   end
-   return "Normal"
-end
-
-local buf = -1
 keymap('i', '<C-q>', function()
    local r, c = unpack(vim.api.nvim_win_get_cursor(0))
    r = r - 1
@@ -190,9 +154,9 @@ if DEBUG_BUFER == nil then
 end
 
 keymap('n', '<A-d>', function()
-   vim.cmd('normal ' .. esc('<C-v><C-l><cmd>e m<cr>'))
+   vim.cmd('normal! ' .. esc('<C-w><C-v><C-w><C-l><cmd>e m<cr>'))
    DEBUG_BUFER = vim.api.nvim_get_current_buf()
-   vim.cmd('normal ' .. esc('<C-h>'))
+   vim.cmd('normal! ' .. esc('<C-w><C-h>'))
 end)
 
 -- - 5 hours + 0 progress should have went to neovim's c code rather than trying to make work arounds
@@ -207,18 +171,21 @@ function clear()
    vim.api.nvim_buf_set_lines(DEBUG_BUFER, 0, -1, false, {})
 end
 
-last_data = "None"
 function log(data)
-   last_data = data
-   if DEBUG_BUFER == -1 then
+   if DEBUG_BUFER == -1 or data == nil then
       return
    end
    if type(data) == 'string' then
       data = vim.split(data, '\n')
-      vim.api.nvim_buf_set_lines(DEBUG_BUFER, -2, -2, false, data)
+      vim.api.nvim_buf_set_lines(DEBUG_BUFER, -1, -1, false, data)
       return
    end
-   vim.api.nvim_buf_set_lines(DEBUG_BUFER, -1, -1, false, data)
+   if type(data) ~= 'table' then
+      data = { data .. "" }
+      vim.api.nvim_buf_set_lines(DEBUG_BUFER, -1, -1, false, data)
+   else
+      vim.api.nvim_buf_set_lines(DEBUG_BUFER, -1, -1, false, data)
+   end
 end
 
 keymap("n", "p", "\"+P")
@@ -232,14 +199,8 @@ keymap('i', '<C-d>', function()
    })
 end)
 
--- window shortcuts
-keymap({ 't', 'i', 'n' }, "<C-l>", "<esc><C-w>l", { remap = true })
-keymap({ 't', 'i', 'n' }, "<C-h>", "<esc><C-w>h", { remap = true })
-keymap({ 't', 'i', 'n' }, "<C-j>", "<esc><C-w>j", { remap = true })
-keymap({ 't', 'i', 'n' }, "<C-k>", "<esc><C-w>k", { remap = true })
-keymap({ 't', 'i', 'n' }, "<C-q>", "<esc><C-w>q", { remap = true })
--- ctrl-v in insert mode places keys letteraly
-keymap({ 't', 'n' }, "<C-v>", "<esc><C-w>v", { remap = true })
+vim.cmd [[ cnoreabbrev E Ex]]
 
-keymap('c', "<C-q>", "<cmd>redraw!<cr>")
-keymap('c', "<C-a>", "<cmd>redraw<cr>")
+keymap('c', "<C-q>", "<cmd>redraw<cr>")
+keymap('c', "<C-d>", "<cmd>redraw!<cr>")
+keymap('c', "<C-a>", " <bs>")

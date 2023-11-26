@@ -1,5 +1,14 @@
 if true then
-  return {{}} 
+   if true then
+      return { {} }
+   end
+   return {
+      {
+         'Sam-programs/cmdline.nvim',
+         event = 'VimEnter',
+         opts = {},
+      }
+   }
 end
 return {
    -- lazy.nvim

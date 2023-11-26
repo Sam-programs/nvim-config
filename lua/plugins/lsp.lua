@@ -62,7 +62,17 @@ return {
          vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename)
          vim.keymap.set('n', '<leader>f', vim.lsp.buf.format)
          vim.keymap.set("n", "<c-h>", vim.lsp.buf.hover)
-         vim.keymap.set("n", "<C-e>", vim.diagnostic.open_float)
+         vim.keymap.set("n", "<C-e>", function()
+            local _, winnr = vim.diagnostic.open_float()
+            local config = vim.api.nvim_win_get_config(winnr)
+            config = vim.tbl_extend('force', config, {
+               relative = 'win',
+               win = vim.api.nvim_get_current_win(),
+               row = 0,
+               col = 0,
+            })
+            vim.api.nvim_win_set_config(winnr, config)
+         end)
          vim.keymap.set("n", "<C-f>", vim.diagnostic.goto_next)
          vim.keymap.set("n", "<C-d>", vim.diagnostic.goto_prev)
          vim.keymap.set("n", "<C-c>", vim.cmd.CodeActionMenu)
@@ -70,7 +80,6 @@ return {
    },
    {
       "ray-x/lsp_signature.nvim",
-      event = "VeryLazy",
       config = function()
          local opts = {
             bind = true,   -- This is mandatory, otherwise border config won't get registered.

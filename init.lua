@@ -31,5 +31,6 @@ eopts = {
    },
 }
 
+vim.cmd [[set rtp +=/usr/local/share/]]
 require('setup')
 vim.cmd("runtime! lazy.lua")

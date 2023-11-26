@@ -10,13 +10,26 @@ autocmd({ "BufRead" }, {
 
 local new_file = false
 autocmd({ "BufWritePre" }, {
-   pattern = { "*.c","*.cpp" },
+   pattern = { "*.c", "*.cpp" },
    callback = function(ev)
       if vim.fn.filereadable(ev.file) == 0 then
          new_file = true
       end
    end
 })
+
+
+
+autocmd({ "ModeChanged" }, {
+   pattern = "*",
+   callback = function(ev)
+      log(vim.v.event.old_mode)
+      log(vim.v.event.new_mode)
+   end
+})
+
+
+
 
 local do_not_cmake = false
 local command = vim.api.nvim_create_user_command
@@ -25,7 +38,7 @@ command("TCmake", function()
 end, {})
 
 autocmd({ "BufWritePost" }, {
-   pattern = { "*.c","*.cpp" },
+   pattern = { "*.c", "*.cpp" },
    callback = function()
       if not do_not_cmake then
          if new_file then
