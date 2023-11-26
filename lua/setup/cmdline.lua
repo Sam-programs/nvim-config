@@ -1,7 +1,10 @@
 -- i was trying to learn the ui to fix an issue in noice
--- the issue ended up being me having an older noevim version
--- but honestly tho i really like using this over noice.
+-- the issue is flicker with commmad-preview i haven't fixed it yet
+-- the next thing i am gonna try is writing a space at the start with <home> then going back to the position with setcmdpos
+-- since the overstrike method is too hard to get right with async issues
+-- <insert><left>(char before the cursor)<insert>
 -- TODO: fix the search icon at the top right flicker
+-- TODO: fix flickering with command-preview
 local cmdbuf = vim.api.nvim_create_buf(false, true)
 local emptybuf = vim.api.nvim_create_buf(false, true)
 vim.bo[cmdbuf].buftype = 'nowrite'

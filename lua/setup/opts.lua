@@ -31,5 +31,3 @@ vim.opt.showcmd = false
 -- shutup
 vim.g.netrw_banner = 0
 vim.opt.report = 999999999
--- slows down writes 
-vim.opt.backupcopy = "no"
