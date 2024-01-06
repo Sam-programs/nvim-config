@@ -20,7 +20,11 @@ return { {
                 inactive = theme.inactive,
             }
         end
-        local k = vim.keycode
+        -- vim.keycode at home
+        local k = function(key)
+            return vim.api.nvim_replace_termcodes(key, false, false, true)
+        end
+        -- i just keep adding keys to this when i find them
         local normalize_key = {}
         local char2nr = vim.fn.char2nr
         local nr2char = vim.fn.nr2char
@@ -30,33 +34,33 @@ return { {
             local index = k('<C-' .. char .. '>')
             normalize_key[index] = '^' .. char
         end
-        normalize_key[k '<cr>'] = '󰌑 '
+        normalize_key[k '<cr>'] = '󰌑'
         normalize_key[k '<bs>'] = '⌫'
         normalize_key[k '<Del>'] = '󰆴'
-        normalize_key[k '<esc>'] = '󱊷 '
+        normalize_key[k '<esc>'] = '󱊷'
         normalize_key[k '<Up>'] = ''
         normalize_key[k '<Down>'] = ''
         normalize_key[k '<Left>'] = ''
         normalize_key[k '<Right>'] = ''
         normalize_key[' '] = '󱁐'
         for i = 1, 4, 1 do
-            normalize_key[k("<" .. i.. "-LeftMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-LeftMouse>")] = '󰍽'
             -- <A-LeftMouse> doesn't exist?
-            normalize_key[k("<" .. i.. "-C-LeftMouse>")] = '󰍽'
-            normalize_key[k("<" .. i.. "-S-LeftMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-C-LeftMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-S-LeftMouse>")] = '󰍽'
 
-            normalize_key[k("<" .. i.. "-MiddleMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-MiddleMouse>")] = '󰍽'
 
-            normalize_key[k("<" .. i.. "-RightMouse>")] = '󰍽'
-            normalize_key[k("<" .. i.. "-A-RightMouse>")] = '󰍽'
-            normalize_key[k("<" .. i.. "-S-RightMouse>")] = '󰍽'
-            normalize_key[k("<" .. i.. "-C-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-A-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-S-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i .. "-C-RightMouse>")] = '󰍽'
 
-            normalize_key[k("<" .. i.. "-LeftDrag>")] = '󱕒'
-            normalize_key[k("<" .. i.. "-RightDrag>")] = '󱕒'
+            normalize_key[k("<" .. i .. "-LeftDrag>")] = '󱕒'
+            normalize_key[k("<" .. i .. "-RightDrag>")] = '󱕒'
 
-            normalize_key[k("<" .. i.. "-LeftRelease>")] = ''
-            normalize_key[k("<" .. i.. "-RightRelease>")] = ''
+            normalize_key[k("<" .. i .. "-LeftRelease>")] = ''
+            normalize_key[k("<" .. i .. "-RightRelease>")] = ''
         end
 
         normalize_key[k("<LeftMouse>")] = '󰍽'
@@ -72,68 +76,111 @@ return { {
         normalize_key[k("<RightDrag>")] = ''
         normalize_key[k("<RightRelease>")] = ''
 
-
         -- q gets an extra space to separate macros
         normalize_key['q'] = 'q'
 
-        normalize_key[k '<end>'] = ''
         local term_prefix = k '<Cmd>'
         term_prefix = term_prefix:sub(1, #term_prefix - 1)
-        -- <C-d>
-        normalize_key[term_prefix .. 'g'] = '^D'
+        -- lua mapping key
+        normalize_key[term_prefix .. 'g'] = ''
         -- KE_NOP
         normalize_key[term_prefix .. 'a'] = ''
         normalize_key[k '<Cmd>'] = ''
-
-        local show_key_limit = 25
-        local in_macro = false
-        vim.api.nvim_create_autocmd({ "RecordingEnter", "RecordingLeave" }, {
-            pattern = "*",
-            callback = function()
-                in_macro = vim.fn.reg_recording()
-            end
-        })
-        local stl_pressed_array = {}
+        normalize_key[k '<SNR>'] = ''
+        -- records about 500 keys since each key gets an extra space most of the time
+        local show_key_limit = 1000
+        local internal = {}
         local pressed_array = {}
+        local mt = {}
+        setmetatable(pressed_array, mt)
+        function mt.__index(table, index)
+            if (rawget(pressed_array, index) == nil) then
+                pressed_array[index] = (" "):rep(show_key_limit)
+            end
+            return rawget(pressed_array, index)
+        end
+
+        vim.o.showcmd = true
+        vim.o.showcmdloc = 'tabline'
+        -- showcmd at hom
+        function showcmd()
+            return vim.api.nvim_eval_statusline('%S', { use_tabline = true }).str
+        end
+
         vim.on_key(function(key)
-            if key == 'q' then
-                if (not in_macro) then
-                    key = ' q'
-                else
-                    key = 'q '
-                end
-            end
             key = normalize_key[key] or key
-            if key:sub(1,#key - 1):find('�') then
-                vim.notify('UNHANDLED key sequence:' .. key .. ' trans:"' .. vim.fn.keytrans(key) .. '"',vim.log.levels.WARN,{})
-                return
+            if key:find(term_prefix:sub(1, 1)) then
+                key = vim.fn.keytrans(key)
             end
-            local curwin = vim.api.nvim_get_current_win()
-            if (pressed_array[curwin]) then
+            local mode = vim.api.nvim_get_mode().mode
+            local cmd = showcmd()
+            -- add  a special case for operators since the showcmd hack doesn't work well with them
+            -- and add macros because i like them being grouped
+            if mode:find("o") or vim.fn.reg_recording() ~= "" then
+                cmd = "valid"
+            end
+                mode = mode:sub(1, 1)
+                if cmd == "" and mode == "n" or mode == "v" then
+                    if key ~= "" then
+                        key = " " .. key
+                    end
+                end
+                local curwin = vim.api.nvim_get_current_win()
                 pressed_array[curwin] = pressed_array[curwin] .. key
-            else
-                pressed_array[curwin] = (' '):rep(show_key_limit - vim.fn.strcharlen(key)) .. key
-            end
-            local len = vim.fn.strcharlen(pressed_array[curwin])
-            local diff = len - show_key_limit
-            if diff > 0 then
-                -- remove the first char
-                pressed_array[curwin] = vim.fn.strcharpart(pressed_array[curwin], diff, len - diff)
-            end
-            stl_pressed_array[curwin] = pressed_array[curwin]:gsub('%%', '%%%%')
-            -- a lot of stuff are unsafe in on_key so schedule
+                local len = vim.fn.strcharlen(pressed_array[curwin])
+                local diff = len - show_key_limit
+                if diff > 0 then
+                    -- remove the first char
+                    pressed_array[curwin] = vim.fn.strcharpart(pressed_array[curwin], diff, len - diff)
+                end
             vim.schedule(function()
                 require('lualine').refresh()
                 -- needed in cmdline
-                vim.cmd.redraws()
+                vim.cmd.redrawstatus()
             end)
         end)
         function get_pressed()
             return pressed_array[vim.api.nvim_get_current_win()]
         end
 
+        vim.api.nvim_create_autocmd('WinClosed', {
+            pattern = "*",
+            callback = function(opt)
+                local win = tonumber(opt.match)
+                if win == nil then
+                    return
+                end
+                if (pressed_array[win]) then
+                    pressed_array[win] = nil
+                end
+            end
+        })
+        function LsKeys()
+            for win, keys in pairs(pressed_array) do
+                local buf = vim.api.nvim_win_get_buf(win)
+                vim.print((vim.fn.bufname(buf):match('[^/]*$') or '') .. ': ' .. keys:gsub('^%s*', ''))
+            end
+        end
+
+        vim.api.nvim_create_user_command('LsKeys', LsKeys, {})
+
+        local last_chars = {}
+        local last_ret = {}
         function get_stl_pressed()
-            return stl_pressed_array[vim.api.nvim_get_current_win()] or (" "):rep(show_key_limit)
+            local win = vim.api.nvim_get_current_win()
+            local chars = pressed_array[win]
+            -- don't recalculate the width if we didn't press a key
+            if chars == last_chars[win] then
+                return last_ret[win]
+            end
+            local stl_limit = math.floor(vim.api.nvim_win_get_width(win) * .27)
+            last_chars[win] = chars
+            local ret = vim.fn.strcharpart(chars, show_key_limit - stl_limit,
+                show_key_limit)
+            -- we might have cut an %%
+            ret = ret:gsub('%%', '%%%%')
+            last_ret[win] = ret
+            return ret
         end
 
         function get_pos()
@@ -143,48 +190,48 @@ return { {
 
         -- i tried to standardize mode lengths as much as possible
         local mode_table = {
-            ["n"]   = "NORMAL",
-            ["no"]  = "O-Pend",
-            ["nov"] = "C-Pend",
-            ["noV"] = "L-Pend",
-            ["no"] = "B-Pend",
+            ["n"]               = "NORMAL",
+            ["no"]              = "O-Pend",
+            ["nov"]             = "C-Pend",
+            ["noV"]             = "L-Pend",
+            ["no" .. k '<C-v>'] = "B-Pend",
 
-            ["i"]   = "INSERT",
-            ["ic"]  = "INSERT",
-            ["ix"]  = "INSERT",
-            ["niI"] = "INSERT",
+            ["i"]               = "INSERT",
+            ["ic"]              = "INSERT",
+            ["ix"]              = "INSERT",
+            ["niI"]             = "INSERT",
 
-            ["v"]   = "VISUAL",
-            ["vs"]  = "VISUAL",
-            ["niV"] = "VISUAL",
+            ["v"]               = "VISUAL",
+            ["vs"]              = "VISUAL",
+            ["niV"]             = "VISUAL",
 
-            [""]   = "VBLOCK",
-            ["s"]  = "VBLOCK",
+            [""]                = "VBLOCK",
+            ["s"]               = "VBLOCK",
 
-            ["V"]   = "V-LINE",
-            ["Vs"]  = "V-LINE",
+            ["V"]               = "V-LINE",
+            ["Vs"]              = "V-LINE",
 
             -- no real good way to shrink this
-            ["R"]   = "REPLACE",
-            ["Rc"]  = "REPLACE",
-            ["Rx"]  = "REPLACE",
-            ["Rv"]  = "REPLACE",
-            ["Rvc"] = "REPLACE",
-            ["Rvx"] = "REPLACE",
-            ["niR"] = "REPLACE",
+            ["R"]               = "REPLACE",
+            ["Rc"]              = "REPLACE",
+            ["Rx"]              = "REPLACE",
+            ["Rv"]              = "REPLACE",
+            ["Rvc"]             = "REPLACE",
+            ["Rvx"]             = "REPLACE",
+            ["niR"]             = "REPLACE",
 
-            ["c"]   = "NORMAL",
-            ["cr"]  = "NORMAL",
-            ["cv"]  = "ExMode",
-            ["cvr"] = "ExMode",
-            ["r"]   = "NORMAL",
-            ["rm"]  = "NORMAL",
-            ["!"]   = "NORMAL",
-            ["r?"]  = "NORMAL",
+            ["c"]               = "NORMAL",
+            ["cr"]              = "NORMAL",
+            ["cv"]              = "ExMode",
+            ["cvr"]             = "ExMode",
+            ["r"]               = "NORMAL",
+            ["rm"]              = "NORMAL",
+            ["!"]               = "NORMAL",
+            ["r?"]              = "NORMAL",
 
-            ["t"]   = "TERM",
-            ["nt"]  = "MOVE",
-            ["ntT"] = "TERM",
+            ["t"]               = "TERM",
+            ["nt"]              = "MOVE",
+            ["ntT"]             = "TERM",
         }
 
         -- while i was looking for a good indentation character for listchars
@@ -202,6 +249,17 @@ return { {
         local mode_icon = mode_icons[math.random(#mode_icons)] .. ' '
 
         local last_mode = "NORMAL"
+        vim.api.nvim_create_autocmd({ 'CmdlineChanged' }, {
+            pattern = '*',
+            callback = function()
+                if vim.fn.getchar(1) == 0 then
+                    last_mode = mode_table['c']
+                    require('lualine').refresh()
+                    vim.cmd([[ redraws ]])
+                end
+            end,
+        })
+
         function get_mode()
             local mode = vim.api.nvim_get_mode().mode
             mode = mode_icon .. mode_table[mode]
@@ -230,7 +288,7 @@ return { {
         })
         local config = {
             lualine_a = {
-                'mode',
+                get_mode,
             },
             lualine_b = {
             },
@@ -264,7 +322,8 @@ return { {
                     unnamed = '[Name Me]', -- Text to show for unnamed buffers.
                     newfile = '', -- Text to show for newly created file before first write
                 }
-            }
+            }, {
+                get_pos }
             , {
                 "diagnostics",
                 sources = { "nvim_lsp" },
@@ -278,14 +337,6 @@ return { {
             },
             lualine_x = {
                 {
-                    'diff',
-                    colored = true, -- Displays a colored diff status if set to true
-                    diff_color = {
-                        added = { fg = colors.green },
-                        modifed = { fg = colors.yellow },
-                        removed = { fg = colors.red },
-                    },
-                    symbols = { added = '+', modified = '󰦒', removed = '-' }, -- Changes the symbols used by the diff.
                 },
             },
             lualine_y = {
