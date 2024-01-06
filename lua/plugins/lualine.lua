@@ -20,7 +20,6 @@ return { {
                 inactive = theme.inactive,
             }
         end
-        vim.keymap.set({'n','i'},'<C-c>','<C-c>')
         local k = vim.keycode
         local normalize_key = {}
         local char2nr = vim.fn.char2nr
@@ -34,36 +33,107 @@ return { {
         normalize_key[k '<cr>'] = '󰌑 '
         normalize_key[k '<bs>'] = '⌫'
         normalize_key[k '<Del>'] = '󰆴'
-        normalize_key[k '<esc>'] = '^['
+        normalize_key[k '<esc>'] = '󱊷 '
         normalize_key[k '<Up>'] = ''
         normalize_key[k '<Down>'] = ''
         normalize_key[k '<Left>'] = ''
         normalize_key[k '<Right>'] = ''
         normalize_key[' '] = '󱁐'
+        for i = 1, 4, 1 do
+            normalize_key[k("<" .. i.. "-LeftMouse>")] = '󰍽'
+            -- <A-LeftMouse> doesn't exist?
+            normalize_key[k("<" .. i.. "-C-LeftMouse>")] = '󰍽'
+            normalize_key[k("<" .. i.. "-S-LeftMouse>")] = '󰍽'
+
+            normalize_key[k("<" .. i.. "-MiddleMouse>")] = '󰍽'
+
+            normalize_key[k("<" .. i.. "-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i.. "-A-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i.. "-S-RightMouse>")] = '󰍽'
+            normalize_key[k("<" .. i.. "-C-RightMouse>")] = '󰍽'
+
+            normalize_key[k("<" .. i.. "-LeftDrag>")] = '󱕒'
+            normalize_key[k("<" .. i.. "-RightDrag>")] = '󱕒'
+
+            normalize_key[k("<" .. i.. "-LeftRelease>")] = ''
+            normalize_key[k("<" .. i.. "-RightRelease>")] = ''
+        end
+
+        normalize_key[k("<LeftMouse>")] = '󰍽'
+        normalize_key[k("<C-LeftMouse>")] = '󰍽'
+        normalize_key[k("<S-LeftMouse>")] = '󰍽'
+        normalize_key[k("<LeftDrag>")] = ''
+        normalize_key[k("<LeftRelease>")] = ''
+        normalize_key[k("<MiddleMouse>")] = '󰍽'
+        normalize_key[k("<RightMouse>")] = '󰍽'
+        normalize_key[k("<A-RightMouse>")] = '󰍽'
+        normalize_key[k("<S-RightMouse>")] = '󰍽'
+        normalize_key[k("<C-RightMouse>")] = '󰍽'
+        normalize_key[k("<RightDrag>")] = ''
+        normalize_key[k("<RightRelease>")] = ''
+
+
+        -- q gets an extra space to separate macros
+        normalize_key['q'] = 'q'
+
         normalize_key[k '<end>'] = ''
         local term_prefix = k '<Cmd>'
         term_prefix = term_prefix:sub(1, #term_prefix - 1)
         -- <C-d>
         normalize_key[term_prefix .. 'g'] = '^D'
+        -- KE_NOP
+        normalize_key[term_prefix .. 'a'] = ''
         normalize_key[k '<Cmd>'] = ''
 
         local show_key_limit = 25
-        local pressed = string.rep(" ", show_key_limit)
+        local in_macro = false
+        vim.api.nvim_create_autocmd({ "RecordingEnter", "RecordingLeave" }, {
+            pattern = "*",
+            callback = function()
+                in_macro = vim.fn.reg_recording()
+            end
+        })
+        local stl_pressed_array = {}
+        local pressed_array = {}
         vim.on_key(function(key)
+            if key == 'q' then
+                if (not in_macro) then
+                    key = ' q'
+                else
+                    key = 'q '
+                end
+            end
             key = normalize_key[key] or key
-            pressed = pressed .. key
-            local len = vim.fn.strcharlen(pressed)
+            if key:sub(1,#key - 1):find('�') then
+                vim.notify('UNHANDLED key sequence:' .. key .. ' trans:"' .. vim.fn.keytrans(key) .. '"',vim.log.levels.WARN,{})
+                return
+            end
+            local curwin = vim.api.nvim_get_current_win()
+            if (pressed_array[curwin]) then
+                pressed_array[curwin] = pressed_array[curwin] .. key
+            else
+                pressed_array[curwin] = (' '):rep(show_key_limit - vim.fn.strcharlen(key)) .. key
+            end
+            local len = vim.fn.strcharlen(pressed_array[curwin])
             local diff = len - show_key_limit
             if diff > 0 then
                 -- remove the first char
-                pressed = vim.fn.strcharpart(pressed, diff, len - diff)
+                pressed_array[curwin] = vim.fn.strcharpart(pressed_array[curwin], diff, len - diff)
             end
-            require('lualine').refresh()
-            -- needed in cmdline
-            vim.cmd.redraws()
+            stl_pressed_array[curwin] = pressed_array[curwin]:gsub('%%', '%%%%')
+            -- a lot of stuff are unsafe in on_key so schedule
+            vim.schedule(function()
+                require('lualine').refresh()
+                -- needed in cmdline
+                vim.cmd.redraws()
+            end)
         end)
         function get_pressed()
-            return pressed
+            return pressed_array[vim.api.nvim_get_current_win()]
+        end
+
+        function get_stl_pressed()
+            return stl_pressed_array[vim.api.nvim_get_current_win()] or (" "):rep(show_key_limit)
         end
 
         function get_pos()
@@ -223,7 +293,7 @@ return { {
             },
             lualine_z = {
                 {
-                    get_pressed,
+                    get_stl_pressed,
                     fmt = function(str)
                         return '󰥻 ' .. str
                     end
