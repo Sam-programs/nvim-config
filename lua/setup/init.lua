@@ -1,0 +1,5 @@
+require('setup.opts')
+require('setup.commands')
+require('setup.remaps')
+require('setup.autocmds')
+require('setup.git')
